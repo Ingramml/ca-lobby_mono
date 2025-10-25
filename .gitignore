@@ -1,5 +1,5 @@
 *.txt
-/pubinfo_load 
+/pubinfo_load
 /Download*
 /Agenda*
 *.zip
@@ -12,3 +12,9 @@ Deprecated*
 # Ignore Python cache files
 __pycache__/
 .master-files/*
+
+# master-files should NOT be in project root (use symlink in .claude/ instead)
+master-files/
+
+# .claude directory contains local symlinks
+.claude/
