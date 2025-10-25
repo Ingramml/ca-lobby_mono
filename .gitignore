@@ -21,3 +21,4 @@ master-files/
 # Large data exports (>100MB) - store elsewhere or use Git LFS
 alameda_data_exports/v_employers_alameda.csv
 alameda_data_exports/v_alameda_activity.csv
+*.csv
