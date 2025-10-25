@@ -88,10 +88,16 @@ CA_lobby-2/
   - ✅ BigQuery extraction of 26,410 complete transaction records
   - ✅ Fixed 60 incorrect dates across 24 markdown files
   - ✅ Created comprehensive documentation for all work
+  - ✅ Created session archive in Session_Archives/session_2025-10-25.md
 - **Next Session Focus**:
   - Integrate transaction_details_complete.csv into CA_lobby frontend
   - Clean up background processes
   - Test frontend with complete data
+
+## Previous Sessions
+
+See [Session_Archives/](../Session_Archives/) for detailed session history:
+- [session_2025-10-25.md](../Session_Archives/session_2025-10-25.md) - Data extraction and date corrections
 
 ---
 
