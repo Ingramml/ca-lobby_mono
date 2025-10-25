@@ -2,7 +2,7 @@
 
 **Purpose**: Standardized workflow for project initialization with Claude_files integration
 **Usage**: New project setup and configuration automation
-**Date Created**: 2024-09-21
+**Date Created**: 2025-09-21
 
 ---
 
@@ -260,6 +260,73 @@ or
 - Project template integration
 - IDE automation
 - Team standardization
+
+---
+
+## Project Age Detection (Safety Feature)
+
+### Purpose
+Protect older/dormant projects from unexpected changes by requiring file structure review and approval before workflow execution.
+
+### Detection Process
+The workflow automatically detects older projects using a priority-based approach:
+
+**PRIMARY Detection** (Most Reliable):
+1. Check for `.claude/sessions/` directory
+2. If session archives exist → Project has Claude Code history → Skip safety check
+3. If no session archives → Trigger safety check (needs review)
+
+**FALLBACK Detection** (When no session archives):
+1. Check last git commit date (>30 days = older)
+2. Check file modification timestamps
+3. Analyze git activity patterns
+4. Check for stale configurations
+
+**Why Session Archives First?**
+- Session archives are the most reliable indicator of Claude Code usage
+- A project with session archives has been properly set up and worked on
+- Git commits can be old even on actively maintained projects
+- Session archives are created by the closing workflow, indicating proper project management
+
+### Safety Workflow
+When an older project is detected:
+
+1. **Automatic Structure Generation**
+   - Creates PROJECT_STRUCTURE.md with complete analysis
+   - Includes directory tree, technologies, git status
+   - Identifies potential issues and risks
+   - Shows session archive status
+
+2. **User Review & Approval Required**
+   - Workflow pauses for user review
+   - User must explicitly approve to proceed
+   - Options: approve, cancel, or ask questions
+
+3. **Workflow Continues on Approval**
+   - Only proceeds after explicit "approved" response
+   - Logs approval for audit trail
+   - Executes standard workflow steps
+   - After closing workflow runs, session archives exist
+   - Future runs skip safety check automatically
+
+### Detection Criteria (Priority Order)
+1. **PRIMARY**: No session archives in `.claude/sessions/` directory
+2. **FALLBACK**: Last git commit >30 days ago (only checked if no session archives)
+3. **ADDITIONAL**: No recent file modifications
+4. **ADDITIONAL**: Stale configuration markers
+5. **ADDITIONAL**: Dormant repository indicators
+
+### Bypassing Safety Check
+To skip safety check (not recommended):
+```
+"Run opening workflow --skip-safety-check"
+```
+
+### Manual Structure Generation
+To generate structure without running workflow:
+```
+"Generate project structure analysis"
+```
 
 ---
 
