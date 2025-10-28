@@ -10,7 +10,6 @@ import {
 
 // Import core page components
 import Dashboard from './components/Dashboard';
-import Reports from './components/Reports';
 import Search from './components/Search';
 import Settings from './components/Settings';
 import PhaseStatus from './components/PhaseStatus';
@@ -70,16 +69,10 @@ function AppContent() {
                 🔍 Search
               </Link>
               <Link
-                to="/reports"
-                className={`nav-link ${location.pathname === '/reports' ? 'active' : ''}`}
-              >
-                📄 Reports
-              </Link>
-              <Link
                 to="/settings"
                 className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`}
               >
-                ⚙️ Settings
+                ⚙️ Admin
               </Link>
             </div>
           </div>
@@ -99,7 +92,6 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/search" element={<Search />} />
-              <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
               <Route
                 path="/organization/:organizationName"
