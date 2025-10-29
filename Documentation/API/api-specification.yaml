@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: CA Lobby Search API
+  description: California Lobby Data Search and Analytics API
+  version: 1.0.0
+  contact:
+    name: CA Lobby Project Team
+
+servers:
+  - url: https://api.ca-lobby.vercel.app/v1
+    description: Production server
+  - url: http://localhost:3001/v1
+    description: Development server
+
+paths:
+  /search:
+    get:
+      summary: Search lobby data with filters
+      description: Returns paginated lobby data based on search criteria
+      parameters:
+        - name: query
+          in: query
+          description: Search term for organizations, lobbyists, or issues
+          schema:
+            type: string
+            maxLength: 255
+        - name: date_from
+          in: query
+          description: Start date for filtering (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          description: End date for filtering (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: organization
+          in: query
+          description: Filter by organization name
+          schema:
+            type: string
+        - name: lobbyist
+          in: query
+          description: Filter by lobbyist name
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by lobby category
+          schema:
+            type: string
+            enum: [healthcare, education, environment, technology, finance, all]
+        - name: amount_min
+          in: query
+          description: Minimum expenditure amount
+          schema:
+            type: number
+            minimum: 0
+        - name: amount_max
+          in: query
+          description: Maximum expenditure amount
+          schema:
+            type: number
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Bad request - invalid parameters
+        '429':
+          description: Rate limit exceeded
+
+  /analytics/trends:
+    get:
+      summary: Get lobby expenditure trends
+      description: Returns time-series data for charts
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trend data for visualization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendsResponse'
+
+  /analytics/organizations:
+    get:
+      summary: Get top organizations by spending
+      description: Returns aggregated organization data for charts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [month, quarter, year]
+            default: year
+      responses:
+        '200':
+          description: Organization analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationAnalytics'
+
+  /user/searches:
+    get:
+      summary: Get user's saved searches
+      security:
+        - ClerkAuth: []
+      responses:
+        '200':
+          description: List of saved searches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavedSearch'
+    post:
+      summary: Save a search
+      security:
+        - ClerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveSearchRequest'
+      responses:
+        '201':
+          description: Search saved successfully
+        '400':
+          description: Invalid request data
+        '401':
+          description: Authentication required
+
+  /export:
+    post:
+      summary: Export search results
+      description: Generate CSV or PDF export of search results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [csv, pdf]
+                filters:
+                  type: object
+                columns:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Export file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /system/status:
+    get:
+      summary: Get system health status
+      description: Returns system metrics for dashboard
+      responses:
+        '200':
+          description: System status information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+
+components:
+  securitySchemes:
+    ClerkAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SearchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyRecord'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        filters_applied:
+          type: object
+        total_results:
+          type: integer
+
+    LobbyRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        organization:
+          type: string
+        lobbyist:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        category:
+          type: string
+        description:
+          type: string
+        issues:
+          type: array
+          items:
+            type: string
+
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        total_pages:
+          type: integer
+        total_results:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+
+    TrendsResponse:
+      type: object
+      properties:
+        timeframe:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              amount:
+                type: number
+              count:
+                type: integer
+
+    OrganizationAnalytics:
+      type: object
+      properties:
+        timeframe:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              organization:
+                type: string
+              total_amount:
+                type: number
+              transaction_count:
+                type: integer
+              percentage_of_total:
+                type: number
+
+    SavedSearch:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        filters:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        last_used:
+          type: string
+          format: date-time
+
+    SaveSearchRequest:
+      type: object
+      required:
+        - name
+        - filters
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        filters:
+          type: object
+
+    SystemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [operational, degraded, maintenance]
+        last_data_update:
+          type: string
+          format: date-time
+        total_records:
+          type: integer
+        api_version:
+          type: string
+        uptime:
+          type: string

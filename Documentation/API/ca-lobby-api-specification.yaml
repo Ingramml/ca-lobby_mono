@@ -1,0 +1,790 @@
+openapi: 3.0.3
+info:
+  title: CA Lobby Search API
+  description: |
+    California Lobby Data Search and Analytics API
+
+    This API provides access to California lobbying data including search capabilities,
+    analytics, and user management features. Designed with mobile-first principles
+    for optimal performance on all devices.
+
+    **Current Status**: Phase 1.3 implementation with demo mode
+    **Demo Data**: 5 representative lobby records for testing and demonstration
+    **Authentication**: Clerk-based authentication required for all endpoints
+  version: 1.0.0
+  contact:
+    name: CA Lobby Project Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://ca-lobby-webapp.vercel.app/api/v1
+    description: Production server (demo mode)
+  - url: http://localhost:5001/api/v1
+    description: Development server (local backend)
+
+# Security scheme for Clerk authentication
+security:
+  - ClerkAuth: []
+
+tags:
+  - name: Search
+    description: Lobby data search operations
+  - name: Analytics
+    description: Data aggregation and visualization endpoints
+  - name: User
+    description: User preferences and saved searches
+  - name: System
+    description: System health and status monitoring
+  - name: Export
+    description: Data export functionality
+
+paths:
+  # Search Endpoints
+  /search:
+    get:
+      tags: [Search]
+      summary: Search lobby data with advanced filters
+      description: |
+        Returns paginated lobby data based on search criteria. Supports full-text search
+        across organizations, lobbyists, and issue descriptions with advanced filtering options.
+
+        **Demo Mode**: Returns filtered results from 5 representative lobby records
+        **Mobile Optimized**: Compressed responses for mobile networks
+      parameters:
+        - name: query
+          in: query
+          description: Search term for organizations, lobbyists, or issues (case-insensitive partial matching)
+          schema:
+            type: string
+            maxLength: 255
+            example: "healthcare"
+        - name: date_from
+          in: query
+          description: Start date for filtering (YYYY-MM-DD format)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: date_to
+          in: query
+          description: End date for filtering (YYYY-MM-DD format)
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: organization
+          in: query
+          description: Filter by organization name (partial matching supported)
+          schema:
+            type: string
+            example: "Medical"
+        - name: lobbyist
+          in: query
+          description: Filter by lobbyist name (partial matching supported)
+          schema:
+            type: string
+            example: "John Smith"
+        - name: category
+          in: query
+          description: Filter by lobby category
+          schema:
+            type: string
+            enum: [healthcare, education, environment, technology, finance, business, all]
+            default: all
+            example: "healthcare"
+        - name: amount_min
+          in: query
+          description: Minimum expenditure amount in USD
+          schema:
+            type: number
+            minimum: 0
+            example: 50000
+        - name: amount_max
+          in: query
+          description: Maximum expenditure amount in USD
+          schema:
+            type: number
+            example: 200000
+        - name: page
+          in: query
+          description: Page number for pagination (1-based indexing)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+            example: 10
+        - name: sort_by
+          in: query
+          description: Sort results by field
+          schema:
+            type: string
+            enum: [date, amount, organization, lobbyist]
+            default: date
+        - name: sort_order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                success: true
+                data:
+                  - id: "1"
+                    organization: "California Medical Association"
+                    lobbyist: "John Smith"
+                    amount: 125000
+                    date: "2024-09-15"
+                    filing_date: "2024-09-15"
+                    category: "healthcare"
+                    description: "Healthcare legislation advocacy and medical professional representation"
+                    activity_description: "Lobbying activities related to healthcare reform and medical licensing"
+                    issues: ["healthcare reform", "medical licensing"]
+                pagination:
+                  current_page: 1
+                  total_pages: 1
+                  total_results: 1
+                  has_next: false
+                  has_previous: false
+                filters_applied:
+                  query: "healthcare"
+                  category: "healthcare"
+                total_results: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search/suggestions:
+    get:
+      tags: [Search]
+      summary: Get search suggestions for autocomplete
+      description: Returns suggested terms for search autocomplete functionality
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Partial search term for suggestions
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 50
+        - name: type
+          in: query
+          description: Type of suggestions to return
+          schema:
+            type: string
+            enum: [organization, lobbyist, all]
+            default: all
+      responses:
+        '200':
+          description: Search suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: string
+                        type:
+                          type: string
+                        count:
+                          type: integer
+
+  # Analytics Endpoints
+  /analytics/trends:
+    get:
+      tags: [Analytics]
+      summary: Get lobby expenditure trends over time
+      description: |
+        Returns time-series data for visualizing lobby spending trends.
+        Used by chart components for trend analysis.
+      parameters:
+        - name: timeframe
+          in: query
+          description: Time aggregation period
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+        - name: category
+          in: query
+          description: Filter trends by category
+          schema:
+            type: string
+            enum: [healthcare, education, environment, technology, finance, business]
+        - name: limit
+          in: query
+          description: Number of data points to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 12
+      responses:
+        '200':
+          description: Trend data for visualization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrendsResponse'
+
+  /analytics/organizations:
+    get:
+      tags: [Analytics]
+      summary: Get top organizations by spending
+      description: Returns aggregated organization data for chart visualizations
+      parameters:
+        - name: limit
+          in: query
+          description: Number of organizations to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: timeframe
+          in: query
+          description: Time period for aggregation
+          schema:
+            type: string
+            enum: [month, quarter, year, all]
+            default: year
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organization analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationAnalytics'
+
+  /analytics/categories:
+    get:
+      tags: [Analytics]
+      summary: Get spending breakdown by category
+      description: Returns category-wise spending data for pie/donut charts
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [month, quarter, year, all]
+            default: year
+      responses:
+        '200':
+          description: Category breakdown data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryAnalytics'
+
+  # User Management Endpoints
+  /user/searches:
+    get:
+      tags: [User]
+      summary: Get user's saved searches
+      description: Returns list of searches saved by the authenticated user
+      responses:
+        '200':
+          description: List of saved searches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved_searches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavedSearch'
+
+    post:
+      tags: [User]
+      summary: Save a search
+      description: Save search criteria for future use
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                query:
+                  type: string
+                filters:
+                  type: object
+      responses:
+        '201':
+          description: Search saved successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /user/searches/{searchId}:
+    delete:
+      tags: [User]
+      summary: Delete a saved search
+      parameters:
+        - name: searchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Search deleted successfully
+        '404':
+          description: Search not found
+
+  /user/preferences:
+    get:
+      tags: [User]
+      summary: Get user preferences
+      description: Returns user's application preferences and settings
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+    put:
+      tags: [User]
+      summary: Update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+
+  # System Endpoints
+  /health:
+    get:
+      tags: [System]
+      summary: Health check endpoint
+      description: Returns system health status and version information
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "ca-lobby-api"
+                  version:
+                    type: string
+                    example: "1.3.0"
+                  environment:
+                    type: string
+                    example: "production"
+                  database:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "connected"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /status:
+    get:
+      tags: [System]
+      summary: Detailed system status
+      description: Returns detailed system status including component health
+      responses:
+        '200':
+          description: System status details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  phase:
+                    type: string
+                    example: "1.3 - Frontend-Backend Integration"
+                  components:
+                    type: object
+                    properties:
+                      backend_api:
+                        type: string
+                        example: "operational"
+                      database:
+                        type: string
+                        example: "connected"
+                      authentication:
+                        type: string
+                        example: "clerk_active"
+                      search_api:
+                        type: string
+                        example: "operational"
+                  performance:
+                    type: object
+                    properties:
+                      cache_hit_rate:
+                        type: string
+                        example: "85%"
+                      avg_response_time:
+                        type: string
+                        example: "1.2s"
+
+  /cache/stats:
+    get:
+      tags: [System]
+      summary: Cache performance statistics
+      description: Returns caching performance metrics
+      responses:
+        '200':
+          description: Cache statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cache_hits:
+                    type: integer
+                  cache_misses:
+                    type: integer
+                  hit_rate:
+                    type: string
+                  cached_keys:
+                    type: integer
+
+  # Export Endpoints
+  /export/search:
+    post:
+      tags: [Export]
+      summary: Export search results
+      description: Export current search results in specified format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [csv, pdf, excel]
+                search_params:
+                  type: object
+                include_metadata:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Export file generated
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    ClerkAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Clerk JWT token authentication
+
+  schemas:
+    SearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LobbyRecord'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        filters_applied:
+          type: object
+          description: Echo of applied filters for client reference
+        total_results:
+          type: integer
+          description: Total number of matching records
+
+    LobbyRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the lobby record
+        organization:
+          type: string
+          description: Name of the lobbying organization
+          example: "California Medical Association"
+        lobbyist:
+          type: string
+          description: Name of the registered lobbyist
+          example: "John Smith"
+        amount:
+          type: number
+          description: Expenditure amount in USD
+          example: 125000
+        date:
+          type: string
+          format: date
+          description: Date of lobbying activity
+          example: "2024-09-15"
+        filing_date:
+          type: string
+          format: date
+          description: Date the record was filed
+          example: "2024-09-15"
+        category:
+          type: string
+          description: Category of lobbying activity
+          example: "healthcare"
+        description:
+          type: string
+          description: Description of lobbying activity
+          example: "Healthcare legislation advocacy and medical professional representation"
+        activity_description:
+          type: string
+          description: Detailed description of specific activities
+          example: "Lobbying activities related to healthcare reform and medical licensing"
+        issues:
+          type: array
+          items:
+            type: string
+          description: List of issues addressed
+          example: ["healthcare reform", "medical licensing"]
+
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        total_pages:
+          type: integer
+          example: 5
+        total_results:
+          type: integer
+          example: 125
+        has_next:
+          type: boolean
+          example: true
+        has_previous:
+          type: boolean
+          example: false
+        page_size:
+          type: integer
+          example: 25
+
+    TrendsResponse:
+      type: object
+      properties:
+        timeframe:
+          type: string
+          example: "month"
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+                example: "2024-09"
+              amount:
+                type: number
+                example: 1250000
+              count:
+                type: integer
+                example: 45
+
+    OrganizationAnalytics:
+      type: object
+      properties:
+        timeframe:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              organization:
+                type: string
+              total_amount:
+                type: number
+              activity_count:
+                type: integer
+              percentage:
+                type: number
+
+    CategoryAnalytics:
+      type: object
+      properties:
+        timeframe:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              amount:
+                type: number
+              percentage:
+                type: number
+              count:
+                type: integer
+
+    SavedSearch:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        query:
+          type: string
+        filters:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        last_used:
+          type: string
+          format: date-time
+
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark]
+          default: light
+        page_size:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 25
+        default_view:
+          type: string
+          enum: [list, grid, table]
+          default: list
+        notifications:
+          type: boolean
+          default: true
+        auto_save:
+          type: boolean
+          default: true
+        language:
+          type: string
+          default: en
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code for client handling
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid query parameter"
+            code: "INVALID_PARAMETER"
+            details:
+              parameter: "date_from"
+              message: "Date must be in YYYY-MM-DD format"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Rate limit exceeded"
+            code: "RATE_LIMIT_EXCEEDED"
+            details:
+              limit: 100
+              window: "1 hour"
+              retry_after: 3600
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"

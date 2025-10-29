@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>California Lobby Activity Database - Secretary of State</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Public Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+            color: #3B3A48;
+            line-height: 1.6;
+            background: #ffffff;
+        }
+
+        /* Color Variables - Official CA State Colors */
+        :root {
+            --ca-blue: #003466;
+            --ca-blue-hover: #003455;
+            --ca-gold: #FDB81E;
+            --light-blue: #E0EDF6;
+            --dark-gray: #3B3A48;
+            --medium-gray: #6c757d;
+            --white: #FFFFFF;
+            --border-gray: #dee2e6;
+        }
+
+        /* Official Header */
+        .official-header {
+            background: var(--ca-blue);
+            color: var(--white);
+            padding: 24px 5%;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .state-seal {
+            width: 60px;
+            height: 60px;
+            background: var(--ca-gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--ca-blue);
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .authority-line {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--ca-blue);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 5%;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--ca-gold);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--light-blue);
+            padding: 80px 5%;
+            text-align: center;
+        }
+
+        .hero h2 {
+            font-size: 2.32rem;
+            font-weight: 700;
+            color: var(--ca-blue);
+            margin-bottom: 24px;
+            line-height: 1.35;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--dark-gray);
+            max-width: 800px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--ca-gold);
+            color: var(--dark-gray);
+            border: none;
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 2px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--ca-blue);
+            border: 2px solid var(--ca-blue);
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 2px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: var(--ca-blue);
+            color: var(--white);
+        }
+
+        /* Quick Links Section */
+        .quick-links {
+            padding: 80px 5%;
+            background: var(--white);
+        }
+
+        .section-title {
+            font-size: 2.32rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 48px;
+            color: var(--ca-blue);
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .link-card {
+            background: var(--white);
+            border: 2px solid var(--ca-blue);
+            padding: 32px;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+
+        .link-card:hover {
+            background: var(--light-blue);
+        }
+
+        .link-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--ca-blue);
+        }
+
+        .link-card h3 {
+            font-size: 1.44rem;
+            color: var(--ca-blue);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .link-card p {
+            color: var(--dark-gray);
+            margin-bottom: 16px;
+            font-size: 0.9375rem;
+        }
+
+        .link-card a {
+            color: var(--ca-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link-card a:hover {
+            text-decoration: underline;
+        }
+
+        /* Information Section */
+        .info-section {
+            padding: 80px 5%;
+            background: var(--white);
+        }
+
+        .info-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 48px;
+        }
+
+        .info-text h3 {
+            font-size: 1.81rem;
+            color: var(--ca-blue);
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .info-text p {
+            margin-bottom: 16px;
+            line-height: 1.6;
+            color: var(--dark-gray);
+        }
+
+        .quick-facts {
+            background: var(--light-blue);
+            border: 2px solid var(--ca-blue);
+            padding: 24px;
+        }
+
+        .quick-facts h4 {
+            color: var(--ca-blue);
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .quick-facts ul {
+            list-style: none;
+        }
+
+        .quick-facts li {
+            margin-bottom: 12px;
+            color: var(--dark-gray);
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .quick-facts li:before {
+            content: "•";
+            color: var(--ca-blue);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Recent Updates Section */
+        .updates {
+            background: var(--light-blue);
+            padding: 60px 5%;
+        }
+
+        .updates-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .updates h3 {
+            font-size: 1.81rem;
+            color: var(--ca-blue);
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .updates ul {
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .updates li {
+            margin-bottom: 12px;
+            color: var(--dark-gray);
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .updates li:before {
+            content: "•";
+            color: var(--ca-blue);
+            font-weight: bold;
+            font-size: 1.5rem;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Disclaimer Section */
+        .disclaimer {
+            background: #f8f9fa;
+            padding: 40px 5%;
+            border: 1px solid var(--border-gray);
+        }
+
+        .disclaimer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .disclaimer h4 {
+            font-size: 1.125rem;
+            color: var(--ca-blue);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .disclaimer p {
+            font-size: 0.875rem;
+            color: var(--medium-gray);
+            line-height: 1.6;
+        }
+
+        /* Official Footer */
+        footer {
+            background: var(--ca-blue);
+            color: var(--white);
+            padding: 48px 5%;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-info {
+            margin-bottom: 24px;
+        }
+
+        .footer-info h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .footer-info p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 8px;
+        }
+
+        .footer-links {
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--white);
+            text-decoration: none;
+            margin-right: 24px;
+        }
+
+        .footer-links a:hover {
+            color: var(--ca-gold);
+            text-decoration: underline;
+        }
+
+        .footer-copyright {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .hero h2 {
+                font-size: 1.75rem;
+            }
+
+            .links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-container {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Official Header -->
+    <div class="official-header">
+        <div class="header-top">
+            <div class="state-seal">CA</div>
+            <div class="header-title">
+                <h1>California Lobby Database</h1>
+                <div class="authority-line">Secretary of State</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Search</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Resources</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h2>California Lobby Activity Database</h2>
+        <p>Official search system for registered lobbying organizations, expenditures, and activities in the State of California</p>
+        <div class="button-group">
+            <a href="#" class="btn-primary">Access Database - Sign In</a>
+            <a href="#" class="btn-secondary">Learn More</a>
+        </div>
+    </section>
+
+    <!-- Quick Links Section -->
+    <section class="quick-links">
+        <h2 class="section-title">Quick Access</h2>
+        <div class="links-grid">
+            <div class="link-card">
+                <div class="link-icon">🔍</div>
+                <h3>Search Database</h3>
+                <p>Search lobbying organizations, expenditures, and activities</p>
+                <a href="#">Learn More →</a>
+            </div>
+            <div class="link-card">
+                <div class="link-icon">📄</div>
+                <h3>Lobbying Reports</h3>
+                <p>View quarterly and annual lobbying activity reports</p>
+                <a href="#">Learn More →</a>
+            </div>
+            <div class="link-card">
+                <div class="link-icon">📥</div>
+                <h3>Download Data</h3>
+                <p>Access raw data files for analysis and research</p>
+                <a href="#">Learn More →</a>
+            </div>
+            <div class="link-card">
+                <div class="link-icon">⚙️</div>
+                <h3>Advanced Search</h3>
+                <p>Use advanced filters to refine your search criteria</p>
+                <a href="#">Learn More →</a>
+            </div>
+            <div class="link-card">
+                <div class="link-icon">📋</div>
+                <h3>Filing Information</h3>
+                <p>Learn about lobbying registration and filing requirements</p>
+                <a href="#">Learn More →</a>
+            </div>
+            <div class="link-card">
+                <div class="link-icon">❓</div>
+                <h3>Resources & FAQs</h3>
+                <p>Help documentation and frequently asked questions</p>
+                <a href="#">Learn More →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Information Section -->
+    <section class="info-section">
+        <div class="info-container">
+            <div class="info-text">
+                <h3>About California Lobbying Transparency</h3>
+                <p>The California Political Reform Act of 1974 requires the registration and disclosure of lobbying activities to promote transparency in government. The Secretary of State maintains this comprehensive database to provide public access to information about registered lobbying organizations, their expenditures, and activities.</p>
+                <p>This database contains information filed by lobbyists, lobbying firms, and lobbyist employers in accordance with California Government Code sections 86100-86300. The information is updated regularly as new filings are received and processed.</p>
+                <p>Public access to lobbying information is essential for government accountability and informed civic participation. This system is designed to make California's lobbying data easily searchable and accessible to all citizens, journalists, researchers, and government officials.</p>
+                <a href="#" class="btn-secondary">Read More About Lobbying Laws</a>
+            </div>
+            <div class="quick-facts">
+                <h4>Quick Facts</h4>
+                <ul>
+                    <li>Database contains records from 2015 to present</li>
+                    <li>Updated daily with new filings</li>
+                    <li>Over 500 registered lobbying organizations</li>
+                    <li>1,000+ registered lobbyists</li>
+                    <li>10,000+ lobbying activities tracked</li>
+                    <li>Free public access</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Updates Section -->
+    <section class="updates">
+        <div class="updates-container">
+            <h3>Recent Database Updates</h3>
+            <ul>
+                <li>Database updated: September 30, 2025</li>
+                <li>New filings: 127 organizations</li>
+                <li>Recent quarter: Q3 2025 data available</li>
+                <li>System status: Operational</li>
+            </ul>
+            <a href="#" class="btn-secondary">View All Updates</a>
+        </div>
+    </section>
+
+    <!-- Disclaimer Section -->
+    <section class="disclaimer">
+        <div class="disclaimer-container">
+            <h4>Data Disclaimer</h4>
+            <p>The information contained in this database is compiled from documents filed by lobbyists, lobbying firms, and lobbyist employers. The Secretary of State makes no warranties, expressed or implied, concerning the accuracy, completeness, reliability, or suitability of this data. This information is provided as a public service and should be independently verified before being used for official purposes. Data is updated regularly but may not reflect the most recent filings. For questions about specific filings or to report discrepancies, please contact the Lobbying Division.</p>
+        </div>
+    </section>
+
+    <!-- Official Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-info">
+                <h3>California Secretary of State</h3>
+                <p>1500 11th Street, Sacramento, CA 95814</p>
+                <p>Phone: (916) 653-6814</p>
+            </div>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Accessibility</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+            <div class="footer-copyright">
+                <p>© 2003-2025 California Secretary of State</p>
+                <p>Website feedback: lobbying@sos.ca.gov</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

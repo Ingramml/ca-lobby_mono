@@ -1,0 +1,31 @@
+/* Import CA Lobby mobile-first foundation */
+@import './styles/foundation/index.css';
+
+/* Demo mode banner styles */
+.demo-banner {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  border-left: 4px solid #fbbf24;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.demo-banner p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.demo-banner strong {
+  color: #fbbf24;
+}
+
+@media (max-width: 768px) {
+  .demo-banner {
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+}

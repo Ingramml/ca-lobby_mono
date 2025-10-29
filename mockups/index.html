@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA Lobby Search - Landing Page Design Mockups</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 60px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.25rem;
+            margin-bottom: 64px;
+            opacity: 0.9;
+        }
+
+        .designs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+            margin-bottom: 64px;
+        }
+
+        .design-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .design-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .design-number {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .design-card h2 {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .design-card .philosophy {
+            font-size: 0.9375rem;
+            opacity: 0.8;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .design-card .description {
+            line-height: 1.6;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+
+        .features-list {
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .features-list li {
+            padding-left: 24px;
+            margin-bottom: 8px;
+            position: relative;
+            font-size: 0.9375rem;
+        }
+
+        .features-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .view-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .comparison-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 64px;
+        }
+
+        .comparison-section h2 {
+            font-size: 2rem;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background: rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        footer {
+            text-align: center;
+            opacity: 0.8;
+            font-size: 0.9375rem;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        footer a:hover {
+            border-bottom-color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .designs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-section {
+                padding: 24px;
+                overflow-x: auto;
+            }
+
+            .comparison-table {
+                font-size: 0.875rem;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CA Lobby Search</h1>
+        <p class="subtitle">Landing Page Design Mockups - Three Unique Approaches</p>
+
+        <div class="designs-grid">
+            <!-- Design #1: Simple & Clean -->
+            <div class="design-card">
+                <div class="design-number">Design #1</div>
+                <h2>Simple & Clean</h2>
+                <p class="philosophy">Minimalist Modern SaaS</p>
+                <p class="description">
+                    A clean, professional design inspired by modern SaaS products like Stripe and Linear.
+                    Focuses on clarity, fast load times, and broad appeal.
+                </p>
+                <ul class="features-list">
+                    <li>Minimalist aesthetic</li>
+                    <li>Fast development (1-2 days)</li>
+                    <li>Excellent mobile experience</li>
+                    <li>WCAG 2.1 AA compliant</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Dev Time</div>
+                        <div class="metric-value">Low</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Load Speed</div>
+                        <div class="metric-value">Fast</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Engagement</div>
+                        <div class="metric-value">Medium</div>
+                    </div>
+                </div>
+                <a href="design1-simple-clean.html" class="view-btn">View Mockup →</a>
+            </div>
+
+            <!-- Design #2: Official CA Government -->
+            <div class="design-card">
+                <div class="design-number">Design #2</div>
+                <h2>Official CA Government</h2>
+                <p class="philosophy">Formal Government Website</p>
+                <p class="description">
+                    Modeled after the CA Secretary of State website with official colors, state seal,
+                    and authoritative design. Establishes trust and government credibility.
+                </p>
+                <ul class="features-list">
+                    <li>Official CA state colors (Blue & Gold)</li>
+                    <li>Government branding compliant</li>
+                    <li>Very high accessibility</li>
+                    <li>Authoritative tone</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Dev Time</div>
+                        <div class="metric-value">Medium</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Credibility</div>
+                        <div class="metric-value">Highest</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Engagement</div>
+                        <div class="metric-value">Low</div>
+                    </div>
+                </div>
+                <a href="design2-official-government.html" class="view-btn">View Mockup →</a>
+            </div>
+
+            <!-- Design #3: Data Storytelling -->
+            <div class="design-card">
+                <div class="design-number">Design #3</div>
+                <h2>Data Storytelling</h2>
+                <p class="philosophy">Engaging Narrative-Driven</p>
+                <p class="description">
+                    Inspired by ProPublica and data journalism sites. Bold, modern design with interactive
+                    elements, compelling narratives, and data visualizations.
+                </p>
+                <ul class="features-list">
+                    <li>Full-viewport hero with gradient</li>
+                    <li>Interactive data previews</li>
+                    <li>Animated statistics</li>
+                    <li>Highest engagement potential</li>
+                </ul>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Dev Time</div>
+                        <div class="metric-value">High</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Uniqueness</div>
+                        <div class="metric-value">Highest</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Engagement</div>
+                        <div class="metric-value">High</div>
+                    </div>
+                </div>
+                <a href="design3-data-storytelling.html" class="view-btn">View Mockup →</a>
+            </div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>Design Comparison Matrix</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Criteria</th>
+                        <th>Design #1: Simple</th>
+                        <th>Design #2: Official</th>
+                        <th>Design #3: Storytelling</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Development Time</strong></td>
+                        <td>1-2 days</td>
+                        <td>3-4 days</td>
+                        <td>5-7 days</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Target Audience</strong></td>
+                        <td>General Public</td>
+                        <td>Officials, Researchers</td>
+                        <td>Journalists, Activists</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Credibility Style</strong></td>
+                        <td>Modern SaaS</td>
+                        <td>Government Authority</td>
+                        <td>Data Journalism</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Engagement Level</strong></td>
+                        <td>Medium</td>
+                        <td>Low</td>
+                        <td>High</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Accessibility</strong></td>
+                        <td>High (WCAG AA)</td>
+                        <td>Very High (Gov Standards)</td>
+                        <td>High (WCAG AA)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mobile Experience</strong></td>
+                        <td>Excellent</td>
+                        <td>Good</td>
+                        <td>Good</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Maintenance</strong></td>
+                        <td>Low</td>
+                        <td>Medium</td>
+                        <td>High</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Quick launch, broad appeal</td>
+                        <td>Official credibility needed</td>
+                        <td>Brand differentiation</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            <p>Created: October 2, 2025 | <a href="../Documentation/UX_DESIGN_PLANS.md">View Full Design Specifications</a></p>
+            <p style="margin-top: 8px;">CA Lobby Search System - UX Design Mockups</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA Lobby Search - Simple & Clean Design</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", sans-serif;
+            color: #212529;
+            line-height: 1.6;
+            background: #ffffff;
+        }
+
+        /* Color Variables */
+        :root {
+            --primary-blue: #007bff;
+            --primary-blue-hover: #0056b3;
+            --dark-text: #212529;
+            --body-text: #6c757d;
+            --light-gray: #f8f9fa;
+            --border-gray: #dee2e6;
+            --white: #ffffff;
+        }
+
+        /* Header - Sticky Navigation */
+        header {
+            position: sticky;
+            top: 0;
+            height: 70px;
+            background: var(--white);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5%;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--dark-text);
+        }
+
+        .sign-in-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--primary-blue);
+            background: transparent;
+            color: var(--primary-blue);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sign-in-btn:hover {
+            background: var(--primary-blue);
+            color: var(--white);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--white);
+            padding: 120px 5%;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--dark-text);
+            margin-bottom: 24px;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--body-text);
+            margin-bottom: 32px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-primary {
+            padding: 16px 48px;
+            background: var(--primary-blue);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 56px;
+            transition: background 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .cta-primary:hover {
+            background: var(--primary-blue-hover);
+        }
+
+        .hero-subtitle {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: var(--body-text);
+        }
+
+        /* Features Section */
+        .features {
+            background: var(--light-gray);
+            padding: 80px 5%;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 64px;
+            color: var(--dark-text);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: var(--dark-text);
+        }
+
+        .feature-card p {
+            color: var(--body-text);
+            line-height: 1.6;
+        }
+
+        /* How It Works Section */
+        .how-it-works {
+            background: var(--white);
+            padding: 80px 5%;
+        }
+
+        .steps-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            text-align: center;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .step-number {
+            width: 56px;
+            height: 56px;
+            background: var(--primary-blue);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto 16px;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: var(--dark-text);
+        }
+
+        .step p {
+            color: var(--body-text);
+            font-size: 0.875rem;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: var(--primary-blue);
+        }
+
+        /* Statistics Section */
+        .statistics {
+            background: var(--light-gray);
+            padding: 80px 5%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 1.125rem;
+            color: var(--body-text);
+        }
+
+        /* Final CTA Section */
+        .final-cta {
+            background: var(--white);
+            padding: 80px 5%;
+            text-align: center;
+        }
+
+        .final-cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            color: var(--dark-text);
+        }
+
+        .final-cta p {
+            font-size: 1.125rem;
+            color: var(--body-text);
+            margin-bottom: 32px;
+        }
+
+        /* Footer */
+        footer {
+            background: #212529;
+            color: var(--light-gray);
+            padding: 32px 5%;
+            text-align: center;
+        }
+
+        footer a {
+            color: var(--light-gray);
+            text-decoration: none;
+            margin: 0 16px;
+        }
+
+        footer a:hover {
+            color: var(--white);
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero {
+                padding: 80px 5%;
+            }
+
+            .section-title {
+                font-size: 1.75rem;
+            }
+
+            .feature-card {
+                padding: 24px;
+            }
+
+            .arrow {
+                display: none;
+            }
+
+            .steps-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">CA Lobby Search</div>
+        <button class="sign-in-btn">Sign In</button>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Transparency in<br>California Lobbying</h1>
+        <p>Search and analyze CA lobby data. Access comprehensive information about lobbying organizations, their activities, and expenditures.</p>
+        <a href="#" class="cta-primary">Get Started - Sign In →</a>
+        <p class="hero-subtitle">Free access • No credit card required</p>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <h2 class="section-title">Why Use CA Lobby Search?</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Search Organizations</h3>
+                <p>Find detailed information on lobbying organizations, their activities, and expenditures with powerful search capabilities.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Analyze Data</h3>
+                <p>Visualize spending trends, track lobbying activities over time, and understand relationships between organizations and lobbyists.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📥</div>
+                <h3>Export Reports</h3>
+                <p>Download comprehensive reports in CSV or JSON format for further analysis and integration with your tools.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <h2 class="section-title">How It Works</h2>
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Sign In</h3>
+                <p>Create free account or sign in</p>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Search</h3>
+                <p>Use advanced search to find organizations</p>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Analyze</h3>
+                <p>View profiles, explore relationships, export data</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="statistics">
+        <h2 class="section-title">By the Numbers</h2>
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">Organizations<br>Tracked</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">1,000+</div>
+                <div class="stat-label">Lobbyists<br>Registered</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">10,000+</div>
+                <div class="stat-label">Activities</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <h2>Ready to Get Started?</h2>
+        <p>Join thousands accessing CA lobby data</p>
+        <a href="#" class="cta-primary">Sign In Now →</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2025 CA Lobby | <a href="#">About</a> | <a href="#">Privacy</a> | <a href="#">Terms</a></p>
+    </footer>
+</body>
+</html>

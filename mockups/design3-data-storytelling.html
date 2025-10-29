@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follow the Money: California Lobbying Uncovered</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+            color: #0F172A;
+            line-height: 1.6;
+            background: #FFFFFF;
+        }
+
+        /* Color Variables */
+        :root {
+            --deep-purple: #5B21B6;
+            --bright-cyan: #06B6D4;
+            --vibrant-orange: #F97316;
+            --dark-navy: #0F172A;
+            --slate-gray: #64748B;
+            --light-slate: #F1F5F9;
+            --white: #FFFFFF;
+        }
+
+        /* Hero Section - Full Viewport */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(135deg, var(--deep-purple) 0%, var(--bright-cyan) 100%);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 0 5%;
+        }
+
+        .hero-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 32px 0;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .sign-in-outline {
+            padding: 12px 24px;
+            border: 2px solid var(--white);
+            background: transparent;
+            color: var(--white);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sign-in-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 48px;
+            line-height: 1.1;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 64px;
+            margin-bottom: 48px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.9;
+        }
+
+        .cta-explore {
+            padding: 18px 48px;
+            background: var(--vibrant-orange);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-explore:hover {
+            transform: scale(1.05);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+
+        /* Impact Story Section */
+        .impact-story {
+            background: var(--white);
+            padding: 120px 5%;
+        }
+
+        .story-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 48px;
+            color: var(--dark-navy);
+        }
+
+        .story-text {
+            font-size: 1.5rem;
+            line-height: 1.8;
+            color: var(--dark-navy);
+            margin-bottom: 64px;
+            text-align: center;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .story-text strong {
+            color: var(--deep-purple);
+            font-weight: 700;
+        }
+
+        .chart-placeholder {
+            background: var(--light-slate);
+            height: 400px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 48px;
+            border: 2px solid #E2E8F0;
+        }
+
+        .chart-placeholder p {
+            color: var(--slate-gray);
+            font-size: 1.25rem;
+        }
+
+        /* Scrolling Data Cards */
+        .data-cards {
+            background: var(--light-slate);
+            padding: 120px 5%;
+        }
+
+        .cards-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .data-card {
+            background: var(--white);
+            padding: 48px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 80px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .data-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .data-card:nth-child(even) {
+            margin-left: auto;
+            max-width: 800px;
+        }
+
+        .data-card:nth-child(odd) {
+            margin-right: auto;
+            max-width: 800px;
+        }
+
+        .data-card h3 {
+            font-size: 2rem;
+            color: var(--dark-navy);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .data-card p {
+            font-size: 1.25rem;
+            color: var(--slate-gray);
+            margin-bottom: 24px;
+        }
+
+        .mini-chart {
+            height: 80px;
+            background: var(--light-slate);
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--slate-gray);
+        }
+
+        .card-link {
+            color: var(--bright-cyan);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .card-link:hover {
+            text-decoration: underline;
+        }
+
+        /* How It Works Section */
+        .how-it-works {
+            background: var(--white);
+            padding: 120px 5%;
+        }
+
+        .works-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .step-box {
+            background: var(--light-slate);
+            border-radius: 16px;
+            padding: 48px;
+            margin-bottom: 32px;
+        }
+
+        .step-box h3 {
+            font-size: 1.75rem;
+            color: var(--deep-purple);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .screenshot-placeholder {
+            background: #CBD5E1;
+            height: 250px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--slate-gray);
+        }
+
+        .step-box p {
+            font-size: 1.125rem;
+            color: var(--dark-navy);
+        }
+
+        .arrow-down {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--bright-cyan);
+            margin: 24px 0;
+        }
+
+        /* Live Preview Section */
+        .live-preview {
+            background: var(--dark-navy);
+            color: var(--white);
+            padding: 120px 5%;
+        }
+
+        .preview-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .preview-container h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 48px;
+        }
+
+        .demo-search {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 32px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.125rem;
+            border-radius: 8px;
+            border: 2px solid var(--bright-cyan);
+            background: var(--white);
+            color: var(--dark-navy);
+        }
+
+        .results-table {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--slate-gray);
+        }
+
+        .preview-note {
+            font-size: 1.125rem;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+
+        /* Trust Section */
+        .trust {
+            background: var(--light-slate);
+            padding: 80px 5%;
+        }
+
+        .trust-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .trust h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 64px;
+            color: var(--dark-navy);
+        }
+
+        .trust-item {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 40px;
+            align-items: flex-start;
+        }
+
+        .trust-icon {
+            font-size: 2rem;
+            color: var(--bright-cyan);
+        }
+
+        .trust-content h3 {
+            font-size: 1.5rem;
+            color: var(--dark-navy);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .trust-content p {
+            color: var(--slate-gray);
+            font-size: 1.125rem;
+        }
+
+        /* Final CTA Section */
+        .final-cta {
+            background: linear-gradient(135deg, var(--deep-purple) 0%, var(--dark-navy) 100%);
+            color: var(--white);
+            padding: 120px 5%;
+            text-align: center;
+        }
+
+        .final-cta h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        .final-cta p {
+            font-size: 1.25rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .reassurance {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark-navy);
+            color: var(--slate-gray);
+            padding: 48px 5%;
+            text-align: center;
+        }
+
+        footer h3 {
+            color: var(--white);
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+
+        footer p {
+            margin-bottom: 24px;
+        }
+
+        footer a {
+            color: var(--slate-gray);
+            text-decoration: none;
+            margin: 0 16px;
+        }
+
+        footer a:hover {
+            color: var(--white);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero {
+                height: 80vh;
+            }
+
+            .hero-stats {
+                gap: 32px;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .story-text {
+                font-size: 1.125rem;
+            }
+
+            .data-card:nth-child(even),
+            .data-card:nth-child(odd) {
+                margin-left: 0;
+                margin-right: 0;
+                max-width: 100%;
+            }
+
+            .data-card {
+                padding: 32px;
+            }
+
+            .step-box {
+                padding: 32px;
+            }
+
+            .final-cta h2 {
+                font-size: 2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-header">
+            <div class="logo">CA Lobby Search</div>
+            <button class="sign-in-outline">Sign In</button>
+        </div>
+        <div class="hero-content">
+            <h1>Follow the Money:<br>California Lobbying Uncovered</h1>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number">$124M</span>
+                    <span class="stat-label">Total Lobbying<br>This Year</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">2,347</span>
+                    <span class="stat-label">Organizations<br>This Year</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">15,892</span>
+                    <span class="stat-label">Activities<br>This Year</span>
+                </div>
+            </div>
+            <a href="#" class="cta-explore">Explore the Data →</a>
+        </div>
+        <div class="scroll-indicator">↓</div>
+    </section>
+
+    <!-- Impact Story Section -->
+    <section class="impact-story">
+        <div class="story-container">
+            <h2 class="section-title">What's at Stake?</h2>
+            <p class="story-text">
+                In 2025, California lobbyists spent over <strong>$124 million</strong> influencing legislation.
+                That's more than the GDP of some small countries. See how lobbying shapes the laws that affect
+                your daily life—from healthcare to housing.
+            </p>
+            <div class="chart-placeholder">
+                <p>[Interactive Bar Chart: Top Spending Sectors]</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scrolling Data Cards -->
+    <section class="data-cards">
+        <div class="cards-container">
+            <div class="data-card">
+                <h3>Top Spender: Healthcare Industry</h3>
+                <p>$42.5M in lobbying expenditures</p>
+                <div class="mini-chart">[Trend Sparkline]</div>
+                <a href="#" class="card-link">→ Explore Healthcare Lobbying</a>
+            </div>
+            <div class="data-card">
+                <h3>Most Active: Tech Coalitions</h3>
+                <p>2,847 lobbying activities</p>
+                <div class="mini-chart">[Trend Sparkline]</div>
+                <a href="#" class="card-link">→ Explore Tech Lobbying</a>
+            </div>
+            <div class="data-card">
+                <h3>Rising: Environmental Groups</h3>
+                <p>+127% increase this year</p>
+                <div class="mini-chart">[Trend Sparkline]</div>
+                <a href="#" class="card-link">→ Explore Environmental Lobbying</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="works-container">
+            <h2 class="section-title">Start Your Investigation</h2>
+
+            <div class="step-box">
+                <h3>1. Search</h3>
+                <div class="screenshot-placeholder">[Screenshot: Search Interface]</div>
+                <p>Find any organization, lobbyist, or bill by name</p>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <div class="step-box">
+                <h3>2. Discover</h3>
+                <div class="screenshot-placeholder">[Screenshot: Organization Profile]</div>
+                <p>Explore spending, relationships, and lobbying activities</p>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <div class="step-box">
+                <h3>3. Export</h3>
+                <div class="screenshot-placeholder">[Screenshot: Export Options]</div>
+                <p>Download data for your own analysis</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 48px;">
+                <a href="#" class="cta-explore">Create Free Account to Start →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Preview Section -->
+    <section class="live-preview">
+        <div class="preview-container">
+            <h2>See It In Action</h2>
+            <div class="demo-search">
+                <input type="text" class="search-input" placeholder="Try searching: California Medical Association">
+            </div>
+            <div class="results-table">
+                [Live Results Table - Interactive Demo]
+            </div>
+            <p class="preview-note">This is real data. Sign in for full access.</p>
+            <a href="#" class="cta-explore">Sign In to Unlock Everything →</a>
+        </div>
+    </section>
+
+    <!-- Trust Section -->
+    <section class="trust">
+        <div class="trust-container">
+            <h2>Why Trust Our Data?</h2>
+
+            <div class="trust-item">
+                <div class="trust-icon">✓</div>
+                <div class="trust-content">
+                    <h3>Official Source</h3>
+                    <p>Data directly from CA Secretary of State</p>
+                </div>
+            </div>
+
+            <div class="trust-item">
+                <div class="trust-icon">✓</div>
+                <div class="trust-content">
+                    <h3>Daily Updates</h3>
+                    <p>Refreshed every 24 hours</p>
+                </div>
+            </div>
+
+            <div class="trust-item">
+                <div class="trust-icon">✓</div>
+                <div class="trust-content">
+                    <h3>Complete History</h3>
+                    <p>Records dating back to 2015</p>
+                </div>
+            </div>
+
+            <div class="trust-item">
+                <div class="trust-icon">✓</div>
+                <div class="trust-content">
+                    <h3>Open Access</h3>
+                    <p>Free for journalists, researchers, public</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <h2>Ready to Investigate?</h2>
+        <p>Join 5,000+ journalists, researchers, and citizens using CA Lobby Search</p>
+        <div class="cta-buttons">
+            <a href="#" class="cta-explore">Create Free Account →</a>
+            <button class="sign-in-outline">Sign In →</button>
+        </div>
+        <p class="reassurance">No credit card • No ads • Always free</p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <h3>CA Lobby Search</h3>
+        <p>Making lobbying data accessible</p>
+        <div>
+            <a href="#">About</a>
+            <a href="#">Data Sources</a>
+            <a href="#">API</a>
+            <a href="#">Contact</a>
+            <a href="#">Privacy</a>
+        </div>
+        <p style="margin-top: 24px;">© 2025 • Built for transparency</p>
+    </footer>
+</body>
+</html>

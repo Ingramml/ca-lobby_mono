@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "totalOrganizations": 11,
+    "lastUpdated": "2025-10-24",
+    "dataVersion": "2.0",
+    "dataSource": "BigQuery Views"
+  },
+  "organizations": [
+    {
+      "id": "org_1144594",
+      "filer_id": "1144594",
+      "name": "ALAMEDA COUNTY WATER DISTRICT",
+      "category": "County Department",
+      "activityCount": 520,
+      "totalSpending": 5067742.99,
+      "averageSpending": 9745.66,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1250137",
+      "filer_id": "1250137",
+      "name": "ALAMEDA COUNTY WASTE MANAGEMENT AUTHORITY",
+      "category": "County Department",
+      "activityCount": 462,
+      "totalSpending": 3914309.56,
+      "averageSpending": 8472.53,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1276637",
+      "filer_id": "1276637",
+      "name": "ALAMEDA ALLIANCE FOR HEALTH",
+      "category": "Health Organization",
+      "activityCount": 371,
+      "totalSpending": 1309010.15,
+      "averageSpending": 3528.33,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1145110",
+      "filer_id": "1145110",
+      "name": "ALAMEDA COUNTY FAIR",
+      "category": "County Department",
+      "activityCount": 364,
+      "totalSpending": 3485739.11,
+      "averageSpending": 9576.21,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1146730",
+      "filer_id": "1146730",
+      "name": "ALAMEDA CORRIDOR-EAST CONSTRUCTION AUTHORITY",
+      "category": "Construction Authority",
+      "activityCount": 350,
+      "totalSpending": 3472938.98,
+      "averageSpending": 9922.68,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1146119",
+      "filer_id": "1146119",
+      "name": "ALAMEDA CORRIDOR TRANSPORTATION AUTHORITY",
+      "category": "County Department",
+      "activityCount": 322,
+      "totalSpending": 3363213.7,
+      "averageSpending": 10444.76,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1145570",
+      "filer_id": "1145570",
+      "name": "ALAMEDA, CITY OF",
+      "category": "City Government",
+      "activityCount": 289,
+      "totalSpending": 5793000.0,
+      "averageSpending": 20044.98,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1144020",
+      "filer_id": "1144020",
+      "name": "ALAMEDA COUNTY CONGESTION MANAGEMENT AGENCY",
+      "category": "County Department",
+      "activityCount": 287,
+      "totalSpending": 3230744.93,
+      "averageSpending": 11256.95,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1143409",
+      "filer_id": "1143409",
+      "name": "ALAMEDA COUNTY TRANSPORTATION IMPROVEMENT AUTHORITY",
+      "category": "County Department",
+      "activityCount": 252,
+      "totalSpending": 3240395.2,
+      "averageSpending": 12858.71,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1356003",
+      "filer_id": "1356003",
+      "name": "ALAMEDA UNIFIED SCHOOL DISTRICT",
+      "category": "School District",
+      "activityCount": 98,
+      "totalSpending": 707000.0,
+      "averageSpending": 7214.29,
+      "firstActivity": null,
+      "lastActivity": null
+    },
+    {
+      "id": "org_1324131",
+      "filer_id": "1324131",
+      "name": "ALAMEDA COUNTY EMPLOYEES' RETIREMENT ASSOCIATION",
+      "category": "County Department",
+      "activityCount": 42,
+      "totalSpending": 420000.0,
+      "averageSpending": 10000.0,
+      "firstActivity": null,
+      "lastActivity": null
+    }
+  ]
+}

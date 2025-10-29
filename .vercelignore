@@ -1,0 +1,27 @@
+# Backend and Python files (this is a React frontend deployment)
+webapp/
+ca-lobby-dashboard/
+*.py
+backend-requirements.txt
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Documentation and development files
+Documentation/
+master-files/
+scripts/
+logs/
+.claude/
+
+# Large data files
+*.csv
+*.sql
+*.db
+*.sqlite
+*.pdf
+
+# OS files
+.DS_Store
+Thumbs.db
