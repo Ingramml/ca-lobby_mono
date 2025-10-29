@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/service-account.json
+      - FLASK_ENV=development
+    volumes:
+      - ./backend:/app
+      - ./credentials:/app/credentials:ro
+    command: python api/app.py
+    networks:
+      - ca-lobby-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:5000/api
+      - NODE_ENV=development
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    command: npm start
+    depends_on:
+      - backend
+    networks:
+      - ca-lobby-network
+
+networks:
+  ca-lobby-network:
+    driver: bridge
