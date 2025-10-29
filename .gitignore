@@ -54,6 +54,7 @@ out/
 *.log
 logs/
 *.txt
+!requirements.txt
 
 # Temporary files
 *.tmp
