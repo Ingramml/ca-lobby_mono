@@ -1,88 +1,75 @@
-import React, { Suspense, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useUserStore } from '../stores';
-import { LobbyTrendsChart, OrganizationChart, CategoryChart } from './charts';
-import KPICard from './KPICard';
-import {
-  getTotalYearSpending,
-  getCityGovernmentSpending,
-  getCountyGovernmentSpending,
-  getOrganizationCounts
-} from '../utils/kpiCalculations';
+import { API_ENDPOINTS, apiCall } from '../config/api';
+import { TopOrganizationsChart, SpendingLineChart } from './charts';
 import './charts/charts.css';
-
-// Error Boundary component for chart protection
-class ChartErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('Chart error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="chart-container error">
-          <h3>Chart Error</h3>
-          <div className="chart-error">
-            <p>Chart temporarily unavailable</p>
-            <button onClick={() => this.setState({ hasError: false, error: null })}>
-              Retry
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 function Dashboard() {
   const { user, isLoaded: userLoaded } = useUser();
-  const [dashboardLoading, setDashboardLoading] = React.useState(true);
-  const [dashboardError, setDashboardError] = React.useState(null);
-  const [chartsEnabled, setChartsEnabled] = React.useState(true);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   // Connect to Zustand stores
   const { syncWithClerk } = useUserStore();
 
-  // Calculate KPI values (memoized for performance)
-  const currentYear = new Date().getFullYear();
-  const kpiData = useMemo(() => ({
-    totalYearSpending: getTotalYearSpending(),
-    citySpending: getCityGovernmentSpending(),
-    countySpending: getCountyGovernmentSpending(),
-    counts: getOrganizationCounts()
-  }), []);
-
   // Sync user data with Clerk when user changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (userLoaded) {
       try {
         syncWithClerk(user);
-        setDashboardLoading(false);
         setDashboardError(null);
       } catch (error) {
         console.error('Dashboard sync error:', error);
         setDashboardError('Failed to sync user data');
-        setDashboardLoading(false);
       }
     }
   }, [user, userLoaded, syncWithClerk]);
 
-  // Handle chart stability
-  const handleChartError = React.useCallback((error) => {
-    console.error('Chart rendering error:', error);
-    setChartsEnabled(false);
-    setTimeout(() => setChartsEnabled(true), 2000); // Re-enable after 2 seconds
-  }, []);
+  // State for spending data
+  const [spendingData, setSpendingData] = useState(null);
+  const [spendingBreakdown, setSpendingBreakdown] = useState(null);
+
+  // Fetch analytics data from API
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setDashboardLoading(true);
+
+        // Fetch summary analytics, spending data, and spending breakdown
+        const [summaryData, spendingResponse, breakdownResponse] = await Promise.all([
+          apiCall(`${API_ENDPOINTS.analytics}?type=summary`),
+          apiCall(`${API_ENDPOINTS.analytics}?type=spending`),
+          apiCall(`${API_ENDPOINTS.analytics}?type=spending_breakdown`)
+        ]);
+
+        if (summaryData.success) {
+          setAnalyticsData(summaryData.data);
+          setDashboardError(null);
+        } else {
+          throw new Error('Failed to fetch analytics');
+        }
+
+        if (spendingResponse.success) {
+          setSpendingData(spendingResponse.data);
+        }
+
+        if (breakdownResponse.success) {
+          setSpendingBreakdown(breakdownResponse.data);
+        }
+      } catch (error) {
+        console.error('Analytics fetch error:', error);
+        setDashboardError(`Failed to load dashboard data: ${error.message}`);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+
+    if (userLoaded) {
+      fetchAnalytics();
+    }
+  }, [userLoaded]);
 
   // Show loading state while Clerk is loading
   if (!userLoaded || dashboardLoading) {
@@ -100,10 +87,16 @@ function Dashboard() {
   if (dashboardError) {
     return (
       <div className="page-container">
+        <div className="page-header">
+          <h1>Dashboard</h1>
+        </div>
         <div className="error-container">
-          <h2>Dashboard Error</h2>
+          <h3>Error Loading Dashboard</h3>
           <p>{dashboardError}</p>
-          <button onClick={() => window.location.reload()} className="btn btn-primary">
+          <button
+            onClick={() => window.location.reload()}
+            className="btn btn-primary"
+          >
             Retry
           </button>
         </div>
@@ -111,84 +104,153 @@ function Dashboard() {
     );
   }
 
+  const currentYear = new Date().getFullYear();
+
+  // Calculate KPI metrics from spending data
+  const calculateKPIs = () => {
+    const baseKpis = {
+      totalSpending: 0,
+      cityCount: 0,
+      countyCount: 0,
+      cityMembership: 0,
+      cityOtherLobbying: 0,
+      countyMembership: 0,
+      countyOtherLobbying: 0
+    };
+
+    if (spendingData && spendingData.length > 0) {
+      // Get latest year's data
+      const latestYear = spendingData[spendingData.length - 1];
+      baseKpis.totalSpending = latestYear?.total_spending || 0;
+      baseKpis.cityCount = latestYear?.city_count || 0;
+      baseKpis.countyCount = latestYear?.county_count || 0;
+    }
+
+    // Add breakdown data
+    if (spendingBreakdown && spendingBreakdown.length > 0) {
+      spendingBreakdown.forEach(item => {
+        if (item.govt_type === 'city' && item.spending_category === 'membership') {
+          baseKpis.cityMembership = item.total_amount || 0;
+        } else if (item.govt_type === 'city' && item.spending_category === 'other_lobbying') {
+          baseKpis.cityOtherLobbying = item.total_amount || 0;
+        } else if (item.govt_type === 'county' && item.spending_category === 'membership') {
+          baseKpis.countyMembership = item.total_amount || 0;
+        } else if (item.govt_type === 'county' && item.spending_category === 'other_lobbying') {
+          baseKpis.countyOtherLobbying = item.total_amount || 0;
+        }
+      });
+    }
+
+    return baseKpis;
+  };
+
+  const kpis = calculateKPIs();
+
   return (
     <div className="page-container">
       <div className="page-header">
         <h1>California Lobbying Dashboard</h1>
         <p className="page-description">
-          Welcome back, {user?.firstName || 'User'}! Year-to-date lobbying expenditure analysis for {currentYear}
+          Overview of California state lobbying activity and key metrics
         </p>
       </div>
 
       <div className="page-content">
-        {/* KPI Section */}
-        <div className="kpi-section">
-          <div className="kpi-grid">
-            <KPICard
-              title="Total Lobbying Expenditures"
-              subtitle={`Year-to-Date ${currentYear}`}
-              value={kpiData.totalYearSpending}
-              icon="💰"
-              color="#2563eb"
-              isEstimate={true}
-            />
-            <KPICard
-              title="City Government Lobbying"
-              subtitle={`${kpiData.counts.cityOrganizations} California ${kpiData.counts.cityOrganizations === 1 ? 'City' : 'Cities'}`}
-              value={kpiData.citySpending}
-              icon="🏛️"
-              color="#10b981"
-              isEstimate={true}
-            />
-            <KPICard
-              title="County Government Lobbying"
-              subtitle={`${kpiData.counts.countyOrganizations} California ${kpiData.counts.countyOrganizations === 1 ? 'County' : 'Counties'}`}
-              value={kpiData.countySpending}
-              icon="🏢"
-              color="#8b5cf6"
-              isEstimate={true}
-            />
+        {/* KPI Cards - Updated to match specification */}
+        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          {/* Total Lobbying Expenditures */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #2563eb' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">💰</span>
+              <h3>Total Lobbying Expenditures</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              ${(kpis.totalSpending / 1000000).toFixed(1)}M
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Actual {currentYear} Spending</p>
+          </div>
+
+          {/* City Government Lobbying */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #10b981' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">🏛️</span>
+              <h3>City Government Lobbying</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              {kpis.cityCount.toLocaleString()}
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{kpis.cityCount} California Cities</p>
+          </div>
+
+          {/* County Government Lobbying */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #8b5cf6' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">🏢</span>
+              <h3>County Government Lobbying</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              {kpis.countyCount.toLocaleString()}
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>{kpis.countyCount} California Counties</p>
           </div>
         </div>
 
-        {/* Visualization Section */}
-        <div className="dashboard-section">
-          <h2>CA Lobby Data Insights</h2>
-          {chartsEnabled ? (
-            <Suspense fallback={<div className="charts-loading">Loading charts...</div>}>
-              {/* Full-width Lobby Trends Chart */}
-              <div className="chart-full-width">
-                <ChartErrorBoundary>
-                  <LobbyTrendsChart onError={handleChartError} />
-                </ChartErrorBoundary>
-              </div>
-
-              {/* Two-column grid for other charts */}
-              <div className="charts-grid">
-                <ChartErrorBoundary>
-                  <OrganizationChart onError={handleChartError} />
-                </ChartErrorBoundary>
-                <ChartErrorBoundary>
-                  <CategoryChart onError={handleChartError} />
-                </ChartErrorBoundary>
-              </div>
-            </Suspense>
-          ) : (
-            <div className="charts-disabled">
-              <div className="chart-container">
-                <h3>Charts Temporarily Disabled</h3>
-                <p>Charts are being reloaded due to a display issue.</p>
-                <button
-                  onClick={() => setChartsEnabled(true)}
-                  className="btn btn-primary"
-                >
-                  Enable Charts
-                </button>
-              </div>
+        {/* Spending Breakdown KPI Cards - New Row */}
+        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', marginTop: '1.5rem' }}>
+          {/* City Membership Spending */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #06b6d4' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">🏛️</span>
+              <h3>City Membership</h3>
             </div>
-          )}
+            <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              ${(kpis.cityMembership / 1000000).toFixed(2)}M
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>City Membership Dues {currentYear}</p>
+          </div>
+
+          {/* City Other Lobbying Spending */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #10b981' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">💼</span>
+              <h3>City Other Lobbying</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              ${(kpis.cityOtherLobbying / 1000000).toFixed(2)}M
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>City Other Lobbying {currentYear}</p>
+          </div>
+
+          {/* County Membership Spending */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #a855f7' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">🏢</span>
+              <h3>County Membership</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              ${(kpis.countyMembership / 1000000).toFixed(2)}M
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>County Membership Dues {currentYear}</p>
+          </div>
+
+          {/* County Other Lobbying Spending */}
+          <div className="dashboard-card" style={{ borderTop: '4px solid #8b5cf6' }}>
+            <div className="kpi-header">
+              <span className="kpi-icon">📋</span>
+              <h3>County Other Lobbying</h3>
+            </div>
+            <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '1rem 0' }}>
+              ${(kpis.countyOtherLobbying / 1000000).toFixed(2)}M
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>County Other Lobbying {currentYear}</p>
+          </div>
         </div>
 
+        {/* Charts Section - Live California Data */}
+        <div className="dashboard-grid" style={{ marginTop: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
+          <SpendingLineChart />
+          <TopOrganizationsChart />
+        </div>
       </div>
     </div>
   );

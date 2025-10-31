@@ -1,419 +1,301 @@
-import React, { useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useOrganizationStore, useSearchStore } from '../stores';
-import {
-  aggregateOrganizationMetrics,
-  extractLobbyistNetwork,
-  calculateSpendingTrends,
-  findRelatedOrganizations
-} from '../utils/sampleData';
-import {
-  exportToCSV,
-  exportToJSON,
-  generateOrganizationSummaryCSV,
-  sanitizeFilename
-} from '../utils/exportHelpers';
-import organizationsSummary from '../data/organizations-summary.json';
-import ActivitySummary from './ActivitySummary';
-import SpendingTrendsChart from './charts/SpendingTrendsChart';
-import ActivityList from './ActivityList';
-import LobbyistNetwork from './LobbyistNetwork';
-import RelatedOrganizations from './RelatedOrganizations';
-import TopRecipients from './TopRecipients';
+import { API_ENDPOINTS, apiCall } from '../config/api';
 
-const OrganizationProfile = React.memo(() => {
+function OrganizationProfile() {
   const { organizationName } = useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filings, setFilings] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [spendingData, setSpendingData] = useState([]);
 
-  const {
-    selectedOrganization,
-    organizationData,
-    activities,
-    lobbyists,
-    spendingTrends,
-    relatedOrganizations,
-    loading: orgLoading,
-    error,
-    setSelectedOrganization,
-    setOrganizationData,
-    setLobbyists,
-    setSpendingTrends,
-    setRelatedOrganizations,
-    setActivities,
-    setLoading,
-    setError,
-    clearOrganization
-  } = useOrganizationStore();
-
-  const { results } = useSearchStore();
-
-  // Ref for heading focus management
-  const headingRef = useRef(null);
-
-  // Export handlers
-  const handleExportCSV = useCallback(() => {
-    const summaryData = generateOrganizationSummaryCSV({
-      selectedOrganization,
-      organizationData,
-      lobbyists
-    });
-    const filename = `${sanitizeFilename(selectedOrganization)}_summary.csv`;
-    exportToCSV([summaryData], filename);
-  }, [selectedOrganization, organizationData, lobbyists]);
-
-  const handleExportJSON = useCallback(() => {
-    const exportData = {
-      organization: selectedOrganization,
-      metadata: organizationData,
-      activities: activities,
-      lobbyists: lobbyists,
-      spendingTrends: spendingTrends,
-      relatedOrganizations: relatedOrganizations,
-      exportDate: new Date().toISOString()
-    };
-    const filename = `${sanitizeFilename(selectedOrganization)}_profile.json`;
-    exportToJSON(exportData, filename);
-  }, [selectedOrganization, organizationData, activities, lobbyists, spendingTrends, relatedOrganizations]);
-
-  const decodedOrgName = useMemo(() =>
-    decodeURIComponent(organizationName),
-    [organizationName]
-  );
-
-  // Load organization profile data (lazy loaded from JSON files)
   useEffect(() => {
-    if (!decodedOrgName) {
-      clearOrganization();
-      return;
-    }
-
-    const loadOrganizationProfile = async () => {
+    const fetchOrganizationData = async () => {
       try {
-        // Set loading state
         setLoading(true);
-        setSelectedOrganization(decodedOrgName);
+        setError(null);
 
-        // Sanitize organization name to match filename
-        const filename = decodedOrgName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-          .substring(0, 50);
+        // Fetch all filings for this specific organization
+        const searchParams = new URLSearchParams({
+          organization: organizationName
+        });
 
-        console.log(`Loading profile for: ${decodedOrgName} (${filename})`);
+        const url = `${API_ENDPOINTS.search}?${searchParams}`;
+        console.log('DEBUG: Fetching organization filings from URL:', url);
+        console.log('DEBUG: organizationName from URL param:', organizationName);
 
-        // Find matching organization in summary (for metadata)
-        const summaryOrg = organizationsSummary.organizations.find(
-          org => org.name === decodedOrgName
-        );
+        const data = await apiCall(url);
+        console.log('Organization profile filings response:', data);
 
-        if (!summaryOrg) {
-          throw new Error(`Organization not found in summary: ${decodedOrgName}`);
+        if (data.success) {
+          // Use all results - API returns all filings for this organization
+          const allResults = data.data || [];
+          console.log('Total filings:', allResults.length);
+          console.log('DEBUG: First filing:', allResults[0]);
+          setFilings(allResults);
+
+          // TODO: Fetch real spending data from API when endpoint is available
+          // TODO: Fetch real bill tracking data from API when endpoint is available
+        } else {
+          throw new Error(data.error?.message || 'Failed to load organization data');
         }
-
-        try {
-          // Try to load REAL activity data from activities directory
-          const activityModule = await import(`../data/activities/${filename}-activities.json`);
-          const activityData = activityModule.default || activityModule;
-
-          console.log('Real activity data loaded:', activityData);
-
-          // Use data from organizations-summary.json
-          const transformedData = {
-            totalActivities: summaryOrg.activityCount || 0,
-            totalSpending: summaryOrg.totalSpending || 0,
-            averageAmount: summaryOrg.averageSpending || 0,
-            topCategory: summaryOrg.category || 'N/A',
-            firstActivity: summaryOrg.firstActivity,
-            lastActivity: summaryOrg.lastActivity
-          };
-
-          console.log('Organization data from summary:', transformedData);
-
-          setOrganizationData(transformedData);
-          setActivities(activityData.activities || []);
-
-          // Extract lobbyists from activities (we don't have this data yet)
-          const lobbyistsData = extractLobbyistNetwork(activityData.activities || []);
-          setLobbyists(lobbyistsData);
-
-          // Calculate spending trends from activities
-          const trends = calculateSpendingTrends(activityData.activities || [], 'quarter');
-          setSpendingTrends(trends);
-
-          // Find related organizations from search results
-          const relatedData = findRelatedOrganizations(decodedOrgName, results, 5);
-          setRelatedOrganizations(relatedData);
-
-        } catch (fileError) {
-          console.warn(`Activity file not found for ${filename}, falling back to search results`, fileError);
-
-          // Fallback: Filter activities from search results
-          const orgActivities = results.filter(
-            r => r.organization === decodedOrgName
-          );
-
-          if (orgActivities.length === 0) {
-            throw new Error(`No data found for organization: ${decodedOrgName}`);
-          }
-
-          // Aggregate data from search results
-          const metrics = aggregateOrganizationMetrics(orgActivities);
-          const lobbyists = extractLobbyistNetwork(orgActivities);
-          const trends = calculateSpendingTrends(orgActivities, 'quarter');
-          const related = findRelatedOrganizations(decodedOrgName, results, 5);
-
-          // Update store with fallback data
-          setOrganizationData(metrics);
-          setActivities(orgActivities);
-          setLobbyists(lobbyists);
-          setSpendingTrends(trends);
-          setRelatedOrganizations(related);
-        }
-
-      } catch (error) {
-        setError(error.message);
-        console.error('Error loading organization data:', error);
+      } catch (err) {
+        console.error('Organization fetch error:', err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    loadOrganizationProfile();
-  }, [decodedOrgName, results, setSelectedOrganization, setOrganizationData,
-      setActivities, setLobbyists, setSpendingTrends, setRelatedOrganizations,
-      setLoading, setError, clearOrganization]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Escape key to go back to search
-      if (e.key === 'Escape') {
-        navigate('/search');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
-
-  // Focus management - focus heading after data loads
-  useEffect(() => {
-    if (headingRef.current && !orgLoading && selectedOrganization) {
-      headingRef.current.focus();
+    if (organizationName) {
+      fetchOrganizationData();
     }
-  }, [orgLoading, selectedOrganization]);
+  }, [organizationName]);
 
-  // Validate organization exists
-  const isValidOrganization = useMemo(() => {
-    // Don't validate if no search performed
-    if (results.length === 0) return null;
-    return activities && activities.length > 0;
-  }, [activities, results.length]);
+  // Pie chart component
+  const PieChart = ({ data, dataKey, title }) => {
+    const total = data.reduce((sum, item) => sum + item.amount, 0);
+    let currentAngle = 0;
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
 
-  // Handle error state
+    return (
+      <div className="chart-container">
+        <h3>{title}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '1rem' }}>
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            {data.map((item, index) => {
+              const percentage = (item.amount / total) * 100;
+              const angle = (percentage / 100) * 360;
+              const startAngle = currentAngle;
+              const endAngle = currentAngle + angle;
+
+              // Calculate path
+              const x1 = 100 + 80 * Math.cos((Math.PI * startAngle) / 180);
+              const y1 = 100 + 80 * Math.sin((Math.PI * startAngle) / 180);
+              const x2 = 100 + 80 * Math.cos((Math.PI * endAngle) / 180);
+              const y2 = 100 + 80 * Math.sin((Math.PI * endAngle) / 180);
+              const largeArc = angle > 180 ? 1 : 0;
+
+              currentAngle += angle;
+
+              return (
+                <path
+                  key={index}
+                  d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                  fill={colors[index % colors.length]}
+                  stroke="white"
+                  strokeWidth="2"
+                />
+              );
+            })}
+          </svg>
+          <div style={{ flex: 1 }}>
+            {data.map((item, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  backgroundColor: colors[index % colors.length],
+                  marginRight: '8px',
+                  borderRadius: '2px'
+                }}></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>
+                    {item[dataKey]}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    ${item.amount.toLocaleString()} ({((item.amount / total) * 100).toFixed(1)}%)
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading organization profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="page-container">
         <div className="page-header">
-          <h1>Error Loading Profile</h1>
+          <h1>Error</h1>
         </div>
-        <div className="page-content">
-          <div className="dashboard-card">
-            <h3>Something went wrong</h3>
-            <p>{error}</p>
-            <button onClick={() => navigate('/search')} className="btn">
-              Return to Search
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Early return for no data
-  if (results.length === 0 && !orgLoading) {
-    return (
-      <div className="page-container">
-        <div className="page-header">
-          <button
-            onClick={() => navigate('/search')}
-            className="btn btn-secondary"
-            style={{ marginBottom: '16px' }}
-          >
-            ← Back to Search
+        <div className="error-container">
+          <h3>Failed to Load Organization</h3>
+          <p>{error}</p>
+          <button onClick={() => navigate('/search')} className="btn btn-primary">
+            Back to Search
           </button>
-          <h1>{decodedOrgName}</h1>
-        </div>
-        <div className="page-content">
-          <div className="dashboard-card">
-            <h3>No Data Available</h3>
-            <p>
-              Please perform a search first to view organization data.
-            </p>
-            <button
-              onClick={() => navigate('/search')}
-              className="btn"
-              style={{ marginTop: '16px' }}
-            >
-              Go to Search
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Handle invalid organization
-  if (isValidOrganization === false) {
-    return (
-      <div className="page-container">
-        <div className="breadcrumb">
-          <span className="breadcrumb-link" onClick={() => navigate('/')}>
-            Home
-          </span>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-link" onClick={() => navigate('/search')}>
-            Search
-          </span>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">{decodedOrgName}</span>
-        </div>
-        <div className="page-header">
-          <h1>Organization Not Found</h1>
-        </div>
-        <div className="page-content">
-          <div className="dashboard-card">
-            <h3>No Data Found</h3>
-            <p>
-              The organization "{decodedOrgName}" was not found in the current search results.
-            </p>
-            <p style={{ marginTop: '16px', color: '#666' }}>
-              This could mean:
-            </p>
-            <ul style={{ textAlign: 'left', color: '#666' }}>
-              <li>The organization name is misspelled</li>
-              <li>No search has been performed yet</li>
-              <li>The organization is not in the current search results</li>
-            </ul>
-            <button
-              onClick={() => navigate('/search')}
-              className="btn"
-              style={{ marginTop: '16px' }}
-            >
-              Return to Search
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-container" role="main" aria-label={`Organization profile for ${decodedOrgName}`}>
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-      <nav className="breadcrumb" aria-label="Breadcrumb navigation">
-        <span
-          className="breadcrumb-link"
-          onClick={() => navigate('/')}
-          role="link"
-          tabIndex={0}
-          onKeyPress={(e) => { if (e.key === 'Enter') navigate('/'); }}
-          aria-label="Navigate to home page"
-        >
-          Home
-        </span>
-        <span className="breadcrumb-separator" aria-hidden="true">/</span>
-        <span
-          className="breadcrumb-link"
-          onClick={() => navigate('/search')}
-          role="link"
-          tabIndex={0}
-          onKeyPress={(e) => { if (e.key === 'Enter') navigate('/search'); }}
-          aria-label="Navigate to search page"
-        >
-          Search
-        </span>
-        <span className="breadcrumb-separator" aria-hidden="true">/</span>
-        <span className="breadcrumb-current" aria-current="page">{decodedOrgName}</span>
-      </nav>
-
+    <div className="page-container">
       <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ flex: '1', minWidth: '250px' }}>
-            <button
-              onClick={() => navigate('/search')}
-              className="btn btn-secondary"
-              style={{ marginBottom: '16px' }}
-              aria-label="Back to search results (Press Escape as shortcut)"
-            >
-              ← Back to Search
-            </button>
-            <h1 ref={headingRef} tabIndex={-1} style={{ outline: 'none' }} id="org-name">{decodedOrgName}</h1>
-            <p className="page-description">
-              {activities?.length || 0} lobbying {activities?.length === 1 ? 'activity' : 'activities'} found
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={handleExportCSV}
-              className="btn btn-secondary"
-              aria-label={`Export ${decodedOrgName} summary as CSV file`}
-              title="Export summary as CSV"
-            >
-              📊 Export CSV
-            </button>
-            <button
-              onClick={handleExportJSON}
-              className="btn btn-secondary"
-              aria-label={`Export complete ${decodedOrgName} profile as JSON file`}
-              title="Export complete profile as JSON"
-            >
-              📁 Export JSON
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => navigate('/search')}
+          className="btn btn-secondary"
+          style={{ marginBottom: '1rem' }}
+        >
+          ← Back to Search
+        </button>
+        <h1>{organizationName}</h1>
+        <p className="page-description">
+          Organization profile with {filings.length} filing{filings.length !== 1 ? 's' : ''} found
+        </p>
       </div>
 
-      <div className="page-content" id="main-content" aria-live="polite" aria-busy={orgLoading}>
-        {/* Activity Summary Metrics */}
-        <ActivitySummary />
-
-        {/* Spending Trends Chart */}
-        <div className="dashboard-card">
-          <SpendingTrendsChart />
-        </div>
-
-        {/* Two-column layout for lists */}
-        <div className="profile-grid">
-          <div className="profile-main">
-            <ActivityList />
+      <div className="page-content">
+        {/* Summary Cards */}
+        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+          <div className="dashboard-card">
+            <h3>Total Filings</h3>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {filings.length}
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Lobbying disclosure filings</p>
           </div>
 
-          <div className="profile-sidebar">
-            <div className="dashboard-card">
-              <TopRecipients />
+          <div className="dashboard-card">
+            <h3>Filing Years</h3>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {filings.length > 0 ? [...new Set(filings.map(f => f.year))].length : 0}
             </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Active filing years</p>
+          </div>
 
-            <div className="dashboard-card">
-              <LobbyistNetwork />
+          <div className="dashboard-card">
+            <h3>Latest Filing</h3>
+            <div className="kpi-value" style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {filings.length > 0 ? filings[0].filing_date || 'N/A' : 'N/A'}
             </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Most recent submission</p>
+          </div>
+        </div>
 
-            <div className="dashboard-card">
-              <RelatedOrganizations
-                onOrganizationClick={(orgName) => {
-                  navigate(`/organization/${encodeURIComponent(orgName)}`);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+        {/* Lobbying Efforts - Bill Tracking */}
+        <div className="search-results" style={{ marginTop: '2rem' }}>
+          <h3>Lobbying Efforts - Bill Tracking</h3>
+          <div className="results-list">
+            {bills.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
+                No bill tracking data available for this organization.
+              </p>
+            ) : (
+              bills.map((bill, index) => (
+                <div key={index} className="result-item">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0' }}>
+                        {bill.bill_id}: {bill.description}
+                      </h4>
+                      <p style={{ margin: '0.25rem 0', color: '#6b7280' }}>
+                        <strong>Transaction Date:</strong> {bill.date}
+                      </p>
+                    </div>
+                    <span style={{
+                      backgroundColor: bill.position === 'Support' ? '#dcfce7' :
+                                     bill.position === 'Oppose' ? '#fee2e2' : '#e0e7ff',
+                      color: bill.position === 'Support' ? '#166534' :
+                             bill.position === 'Oppose' ? '#991b1b' : '#3730a3',
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {bill.position}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Spending Analysis - Pie Charts */}
+        {spendingData.length > 0 && (
+          <div style={{ marginTop: '2rem' }}>
+            <h3 style={{ marginBottom: '1rem' }}>Spending Analysis</h3>
+            <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+              <PieChart
+                data={spendingData}
+                dataKey="category"
+                title="Spending by Category"
+              />
+              <PieChart
+                data={spendingData}
+                dataKey="recipient"
+                title="Spending by Recipient"
               />
             </div>
+          </div>
+        )}
+
+        {/* Filings List */}
+        <div className="search-results" style={{ marginTop: '2rem' }}>
+          <h3>All Filings</h3>
+          <div className="results-list">
+            {filings.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
+                No filings found for this organization.
+              </p>
+            ) : (
+              filings.map((filing, index) => (
+                <div key={filing.filing_id || index} className="result-item">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0' }}>
+                        Filing ID: {filing.filing_id}
+                      </h4>
+                      <p style={{ margin: '0.25rem 0' }}>
+                        <strong>Filer ID:</strong> {filing.filer_id}
+                      </p>
+                      <p style={{ margin: '0.25rem 0' }}>
+                        <strong>Year:</strong> {filing.year || 'N/A'} |{' '}
+                        <strong>Period:</strong> {filing.period || 'N/A'}
+                      </p>
+                      {filing.filing_date && (
+                        <p style={{ margin: '0.25rem 0' }}>
+                          <strong>Date:</strong> {filing.filing_date}
+                        </p>
+                      )}
+                    </div>
+                    <span style={{
+                      backgroundColor: '#e3f2fd',
+                      color: '#1565c0',
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600'
+                    }}>
+                      {filing.year || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-});
+}
 
 export default OrganizationProfile;

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import {
@@ -12,11 +12,8 @@ import {
 import Dashboard from './components/Dashboard';
 import Search from './components/Search';
 import Settings from './components/Settings';
-import PhaseStatus from './components/PhaseStatus';
+import OrganizationProfile from './components/OrganizationProfile';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Lazy load OrganizationProfile for code splitting
-const OrganizationProfile = lazy(() => import('./components/OrganizationProfile'));
 
 function App() {
   return (
@@ -35,11 +32,23 @@ function AppContent() {
     <>
       <header className="App-header">
         <div className="header-content">
-          <h1>Welcome to TPC's CA lobby search_gitdeopoy</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ position: 'relative' }}>
-              <PhaseStatus />
-            </div>
+            <Link
+              to="/"
+              style={{
+                fontSize: '2rem',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Go to Dashboard"
+            >
+              🏛️
+            </Link>
+            <h1>Welcome to TPC's CA lobby search_gitdeopoy</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="sign-in-btn">Sign In</button>
@@ -93,19 +102,7 @@ function AppContent() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/search" element={<Search />} />
               <Route path="/settings" element={<Settings />} />
-              <Route
-                path="/organization/:organizationName"
-                element={
-                  <Suspense fallback={
-                    <div className="loading-container" style={{ padding: '40px', textAlign: 'center' }}>
-                      <div className="loading-spinner"></div>
-                      <p>Loading organization profile...</p>
-                    </div>
-                  }>
-                    <OrganizationProfile />
-                  </Suspense>
-                }
-              />
+              <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
             </Routes>
           </ErrorBoundary>
         </SignedIn>

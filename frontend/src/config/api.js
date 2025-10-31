@@ -6,19 +6,22 @@ const getApiBaseUrl = () => {
     return '';
   }
 
-  // In development, use localhost backend
-  return 'http://localhost:5001';
+  // In development with Vercel dev, use relative URLs (same server)
+  // Vercel dev serves both frontend and API on same port (3000)
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
 
 export const API_ENDPOINTS = {
-  health: `${API_BASE_URL}/health`,
+  health: `${API_BASE_URL}/api/health`,
+  analytics: `${API_BASE_URL}/api/analytics`,
+  search: `${API_BASE_URL}/api/search`,
   status: `${API_BASE_URL}/api/status`,
-  search: `${API_BASE_URL}/api/search/`,
   cacheStats: `${API_BASE_URL}/api/cache/stats`,
   searchSuggestions: `${API_BASE_URL}/api/search/suggestions`,
-  exportSearch: `${API_BASE_URL}/api/search/export`
+  exportSearch: `${API_BASE_URL}/api/search/export`,
+  databaseStats: `${API_BASE_URL}/api/database_stats`
 };
 
 // Helper function for making API calls with proper error handling

@@ -1,0 +1,22 @@
+# Backend pipeline (not needed in deployment)
+backend/pipeline/
+backend/docs/
+backend/*.sql
+
+# Python virtual environments
+venv/
+.venv/
+env/
+*.pyc
+__pycache__/
+
+# Credentials (NEVER deploy these)
+*.json
+!vercel.json
+!package.json
+!package-lock.json
+
+# Development files
+.env
+.env.local
+.DS_Store
