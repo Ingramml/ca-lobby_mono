@@ -185,14 +185,25 @@ class handler(BaseHTTPRequestHandler):
         """
 
         # Get payment statistics
+        # FIXED: Now filters to latest amendments only to avoid counting duplicate payments
         payment_query = """
+        WITH latest_payments AS (
+            SELECT
+                FILING_ID,
+                AMEND_ID,
+                PER_TOTAL,
+                LINE_ITEM,
+                ROW_NUMBER() OVER (PARTITION BY FILING_ID, LINE_ITEM ORDER BY AMEND_ID DESC) as rn
+            FROM `ca-lobby.ca_lobby.lpay_cd`
+            WHERE PER_TOTAL IS NOT NULL
+              AND CAST(PER_TOTAL AS FLOAT64) > 0
+        )
         SELECT
             COUNT(*) as total_payments,
             SUM(CAST(PER_TOTAL AS FLOAT64)) as total_amount,
             AVG(CAST(PER_TOTAL AS FLOAT64)) as avg_payment
-        FROM `ca-lobby.ca_lobby.lpay_cd`
-        WHERE PER_TOTAL IS NOT NULL
-          AND CAST(PER_TOTAL AS FLOAT64) > 0
+        FROM latest_payments
+        WHERE rn = 1
         """
 
         # Get organization view statistics
@@ -209,15 +220,24 @@ class handler(BaseHTTPRequestHandler):
         """
 
         # Get yearly breakdown
+        # FIXED: Now filters to latest amendments only to avoid counting amendments as separate filings
         yearly_query = """
+        WITH latest_filings AS (
+            SELECT
+                RPT_DATE_DATE,
+                FILER_ID,
+                ROW_NUMBER() OVER (PARTITION BY FILING_ID ORDER BY AMEND_ID DESC) as rn
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
+            WHERE RPT_DATE_DATE IS NOT NULL
+              AND EXTRACT(YEAR FROM RPT_DATE_DATE) >= 2015
+              AND EXTRACT(YEAR FROM RPT_DATE_DATE) <= EXTRACT(YEAR FROM CURRENT_DATE())
+        )
         SELECT
             EXTRACT(YEAR FROM RPT_DATE_DATE) as year,
             COUNT(DISTINCT FILER_ID) as orgs_count,
             COUNT(*) as filings_count
-        FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
-        WHERE RPT_DATE_DATE IS NOT NULL
-          AND EXTRACT(YEAR FROM RPT_DATE_DATE) >= 2015
-          AND EXTRACT(YEAR FROM RPT_DATE_DATE) <= EXTRACT(YEAR FROM CURRENT_DATE())
+        FROM latest_filings
+        WHERE rn = 1
         GROUP BY year
         ORDER BY year DESC
         LIMIT 10

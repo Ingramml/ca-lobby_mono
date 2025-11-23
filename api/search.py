@@ -245,6 +245,9 @@ class handler(BaseHTTPRequestHandler):
     def _handle_organization_filings(self, org_name):
         """Get all filings for a specific organization - uses partitioned table for 76% cost reduction
 
+        FIXED: Now filters to latest amendments only (per user request) to show only
+        the most recent version of each filing, not all amendment history.
+
         Uses case-insensitive LIKE matching to handle variations in organization names.
         """
         try:
@@ -252,6 +255,19 @@ class handler(BaseHTTPRequestHandler):
             print(f"DEBUG: _handle_organization_filings called with org_name='{org_name}'")
 
             query = """
+            WITH latest_filings AS (
+                SELECT
+                    FILING_ID,
+                    FILER_ID,
+                    FILER_NAML,
+                    RPT_DATE_DATE,
+                    ROW_NUMBER() OVER (PARTITION BY FILING_ID ORDER BY AMEND_ID DESC) as rn
+                FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
+                WHERE UPPER(FILER_NAML) LIKE UPPER(@org_name)
+                  AND FROM_DATE_DATE >= '2020-01-01'
+                  AND RPT_DATE_DATE IS NOT NULL
+                  AND EXTRACT(YEAR FROM RPT_DATE_DATE) BETWEEN 2000 AND 2025
+            )
             SELECT
                 FILING_ID as filing_id,
                 FILER_ID as filer_id,
@@ -264,11 +280,8 @@ class handler(BaseHTTPRequestHandler):
                     ' ',
                     CAST(EXTRACT(YEAR FROM RPT_DATE_DATE) AS STRING)
                 ) as period
-            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
-            WHERE UPPER(FILER_NAML) LIKE UPPER(@org_name)
-              AND FROM_DATE_DATE >= '2020-01-01'
-              AND RPT_DATE_DATE IS NOT NULL
-              AND EXTRACT(YEAR FROM RPT_DATE_DATE) BETWEEN 2000 AND 2025
+            FROM latest_filings
+            WHERE rn = 1
             ORDER BY RPT_DATE_DATE DESC
             """
 
