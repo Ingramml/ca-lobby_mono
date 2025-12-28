@@ -464,6 +464,174 @@ Supporting Information:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** October 24, 2025  
-**Source:** California Secretary of State, California Civic Data Coalition
+---
+
+## Extended Documentation (November 2025)
+
+For comprehensive technical analysis and query patterns, see the **[database_docs/](../../database_docs/)** directory:
+
+### Critical Resources
+
+1. **[Lessons Learned](../../database_docs/lessons_learned.md)** - Start here!
+   - 15 critical insights about the database
+   - Payment flow logic and entity relationships
+   - Common pitfalls and how to avoid them
+   - Data quality issues and validation strategies
+
+2. **[Database Structure](../../database_docs/database_structure.md)**
+   - Complete Oracle schema analysis (Model_1, 2002)
+   - Three-tier subsystem architecture (EFS, AMS, Disclosure)
+   - Detailed table relationships and data flow
+
+3. **[Field Mapping Guide](../../database_docs/field_mapping_guide.md)**
+   - Comprehensive field definitions
+   - Naming conventions and data types
+   - Join patterns and query examples
+
+4. **[Business Rules](../../database_docs/business_rules.md)**
+   - Payment flow business logic
+   - Filing requirements and deadlines
+   - Amendment processing rules
+   - SQL query patterns for common use cases
+
+### Key Insights from Deep Analysis
+
+#### Critical Understanding: Entity Codes
+
+The most important distinction in the database:
+- **LEM** (Lobbyist Employer) = The entity that **PAYS** for lobbying (e.g., City of Oakland)
+- **FRM** (Lobbying Firm) = The entity that **IS PAID** (e.g., Nielsen Merksamer)
+- **LBY** (Lobbyist) = Individual lobbyist employed by the firm
+
+**In LPAY_CD table**:
+```
+EMPLR_NAML = Who PAID (the city/county)
+PAYEE_NAML = Who WAS PAID (the lobbying firm)
+PER_TOTAL = Amount paid for the quarter
+```
+
+**Common Error**: Confusing EMPLR and PAYEE will give you backwards payment data!
+
+#### Amendment Handling (CRITICAL)
+
+**Business Rule**: Always query for the LATEST amendment only.
+
+```sql
+-- CORRECT: Get only latest amendments
+WHERE (filing_id, amend_id) IN (
+    SELECT filing_id, MAX(amend_id)
+    FROM lpay_cd
+    GROUP BY filing_id
+)
+
+-- WRONG: Counts all amendments as separate payments
+WHERE filing_id = 123456  -- Gets amend_id 0, 1, 2, etc.
+```
+
+**Why**: Amendment 1 **replaces** Amendment 0 (not additive). Counting all amendments inflates totals.
+
+#### The Most Critical Table: LPAY_CD
+
+For tracking city/county lobbying expenditures, **LPAY_CD** is your primary data source:
+
+| Field | Meaning | Example |
+|-------|---------|---------|
+| **EMPLR_NAML** | City/county that paid | "City of Oakland" |
+| **PAYEE_NAML** | Lobbying firm that was paid | "Capitol Advocacy" |
+| **FEES_AMT** | Fees/retainer paid | $50,000 |
+| **REIMB_AMT** | Reimbursements | $5,000 |
+| **ADVAN_AMT** | Advance payments | $10,000 |
+| **PER_TOTAL** | Total for quarter | $65,000 |
+
+**Calculation**: `PER_TOTAL = FEES_AMT + REIMB_AMT + ADVAN_AMT`
+
+#### Date Fields Clarification
+
+Multiple date fields exist with different meanings:
+
+| Field | Use For | Example |
+|-------|---------|---------|
+| **FROM_DATE** / **THRU_DATE** | Activity period | Q1 2024: 01/01/2024 - 03/31/2024 |
+| **FILING_DATE** | When submitted | 04/18/2024 |
+| **SIG_DATE** | When filer signed | 04/15/2024 |
+| **RPT_DATE** | Report covers through | Usually = THRU_DATE |
+
+**For time-series analysis**: Use FROM_DATE and THRU_DATE, not FILING_DATE.
+
+#### Data Quality Warnings
+
+1. **Name Variations**: Same entity appears with different spellings
+   - "City of Oakland" vs "Oakland" vs "Oakland, City of"
+   - Use NAMES_CD table for searches
+
+2. **Historical Complexity**: Undocumented numbered tables
+   - LOBBYIST_EMPLOYER1/2/3 relationship unclear
+   - Use with caution, validate results
+
+3. **CUM_TOTAL Unreliable**: Don't trust CUM_TOTAL field
+   - Calculate your own cumulative totals from PER_TOTAL
+   - Amendments make CUM_TOTAL calculations inconsistent
+
+4. **Missing Data**: Not all fields populated in all filings
+   - Always handle NULLs explicitly in queries
+   - Validate sums against cover page totals
+
+### Our BigQuery Views
+
+We've created **73 analytical views** in 4 layers to abstract complexity:
+
+**Layer 1** (Base views with clean names):
+- `v_filers`, `v_payments`, `v_disclosures`, `v_expenditures`
+
+**Layer 2** (Pre-joined integration):
+- `v_int_payment_details` - Payments with full context
+- `v_int_payment_with_latest_amendment` - Latest amendments only
+
+**Layer 3** (Aggregations):
+- `v_summary_payments_by_year`
+- `v_organization_summary` (116x faster than raw queries!)
+
+**Layer 4** (Filtered specialty views):
+- `v_filter_alameda_filers`
+- `v_filter_high_value_payments`
+
+**Recommendation**: Use these views instead of querying raw tables directly.
+
+### Quick Reference: Common Query Pattern
+
+**To find city/county lobbying spending**:
+
+```sql
+SELECT
+    p.emplr_naml AS city_or_county,
+    p.payee_naml AS lobbying_firm,
+    EXTRACT(YEAR FROM c.from_date) AS year,
+    SUM(p.per_total) AS total_paid
+FROM lpay_cd p
+JOIN cvr_lobby_disclosure_cd c
+    ON p.filing_id = c.filing_id
+    AND p.amend_id = c.amend_id
+WHERE p.emplr_naml LIKE '%Oakland%'
+    AND c.entity_cd = 'LEM'  -- Lobbyist Employer
+    AND p.amend_id = (
+        SELECT MAX(amend_id)
+        FROM lpay_cd
+        WHERE filing_id = p.filing_id
+    )
+GROUP BY p.emplr_naml, p.payee_naml, EXTRACT(YEAR FROM c.from_date)
+ORDER BY year, total_paid DESC
+```
+
+### The Three Cardinal Rules
+
+1. **Always filter to latest AMEND_ID** (use MAX pattern above)
+2. **Understand entity codes** (LEM = payer, FRM = payee)
+3. **Aggregate on PER_TOTAL** (not CUM_TOTAL)
+
+**Violating these rules will produce incorrect results!**
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** November 22, 2025
+**Source:** California Secretary of State, California Civic Data Coalition, Expert Schema Analysis

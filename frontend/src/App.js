@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import {
@@ -27,6 +27,7 @@ function App() {
 
 function AppContent() {
   const location = useLocation();
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   return (
     <>
@@ -46,7 +47,7 @@ function AppContent() {
             >
               🏛️
             </Link>
-            <h1>Welcome to TPC's CA lobby search_gitdeopoy</h1>
+            <h1>California Lobbying Dashboard</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <SignedOut>
@@ -64,26 +65,65 @@ function AppContent() {
       <SignedIn>
         <nav className="main-nav">
           <div className="nav-content">
-            <div className="nav-links">
-              <Link
-                to="/"
-                className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+            <button
+              onClick={() => setNavCollapsed(!navCollapsed)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              aria-expanded={!navCollapsed}
+              aria-controls="main-navigation"
+            >
+              <svg
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  transform: navCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                📊 Dashboard
-              </Link>
-              <Link
-                to="/search"
-                className={`nav-link ${location.pathname === '/search' ? 'active' : ''}`}
-              >
-                🔍 Search
-              </Link>
-              <Link
-                to="/settings"
-                className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`}
-              >
-                ⚙️ Admin
-              </Link>
-            </div>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {navCollapsed ? 'Show Navigation' : 'Hide Navigation'}
+            </button>
+
+            {!navCollapsed && (
+              <div id="main-navigation" className="nav-links">
+                <Link
+                  to="/"
+                  className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+                >
+                  📊 Dashboard
+                </Link>
+                <Link
+                  to="/search"
+                  className={`nav-link ${location.pathname === '/search' ? 'active' : ''}`}
+                >
+                  🔍 Search
+                </Link>
+                <Link
+                  to="/settings"
+                  className={`nav-link ${location.pathname === '/settings' ? 'active' : ''}`}
+                >
+                  ⚙️ Admin
+                </Link>
+              </div>
+            )}
           </div>
         </nav>
       </SignedIn>
@@ -91,7 +131,7 @@ function AppContent() {
       <main className="App-main">
         <SignedOut>
           <div className="welcome-section">
-            <h2>Welcome to TPC's CA lobby search_gitdeopoy</h2>
+            <h2>California Lobbying Dashboard</h2>
             <p>Please sign in to access the search dashboard.</p>
           </div>
         </SignedOut>

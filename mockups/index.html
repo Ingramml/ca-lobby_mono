@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Layout Options - Choose Your Preference</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            margin-bottom: 48px;
+        }
+
+        .option-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .option-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .option-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .option-description {
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .option-features {
+            list-style: none;
+            padding: 0;
+        }
+
+        .option-features li {
+            color: #4b5563;
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .option-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .view-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: opacity 0.2s;
+        }
+
+        .view-button:hover {
+            opacity: 0.9;
+        }
+
+        .info-box {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .info-box h2 {
+            color: #1f2937;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+        }
+
+        .info-box p {
+            color: #4b5563;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .info-box ul {
+            color: #4b5563;
+            line-height: 1.8;
+            padding-left: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard Layout Options</h1>
+            <p>Choose your preferred layout for organizing the KPI cards</p>
+        </div>
+
+        <div class="options-grid">
+            <div class="option-card">
+                <div class="option-number" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">1</div>
+                <h2 class="option-title">Separate by Type</h2>
+                <p class="option-description">Group metrics by what they measure: totals, counts, then spending breakdown</p>
+                <ul class="option-features">
+                    <li>Section headers for clarity</li>
+                    <li>Year badges (2025 vs All Years)</li>
+                    <li>3 distinct sections</li>
+                    <li>Logical flow top to bottom</li>
+                </ul>
+                <a href="option1-separate-by-type.html" class="view-button">View Option 1</a>
+            </div>
+
+            <div class="option-card">
+                <div class="option-number" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">2</div>
+                <h2 class="option-title">Group by Government</h2>
+                <p class="option-description">All city metrics together, all county metrics together for easy comparison</p>
+                <ul class="option-features">
+                    <li>City section + County section</li>
+                    <li>Badges on each card</li>
+                    <li>Easy city vs county comparison</li>
+                    <li>Consistent 3-card rows</li>
+                </ul>
+                <a href="option2-group-by-government.html" class="view-button">View Option 2</a>
+            </div>
+
+            <div class="option-card">
+                <div class="option-number" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">3</div>
+                <h2 class="option-title">Visual Badges</h2>
+                <p class="option-description">Keep current layout, add visual year indicators on each card</p>
+                <ul class="option-features">
+                    <li>Minimal layout changes</li>
+                    <li>Color-coded borders</li>
+                    <li>Top-right corner badges</li>
+                    <li>Quick visual scanning</li>
+                </ul>
+                <a href="option3-visual-badges.html" class="view-button">View Option 3</a>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h2>The Issue We're Solving</h2>
+            <p><strong>Current confusion:</strong> The dashboard mixes two different time periods without making it clear:</p>
+            <ul>
+                <li><strong>Row 1 cards</strong> (Total, City Count, County Count) show <strong>2025 data only</strong></li>
+                <li><strong>Row 2 cards</strong> (Membership/Other Lobbying) show <strong>all-time cumulative data</strong></li>
+            </ul>
+            <p style="margin-top: 16px;"><strong>Goal:</strong> Make it immediately obvious which metrics are current year vs historical totals, so users don't accidentally compare 2025 counts with all-time spending.</p>
+
+            <h2 style="margin-top: 32px;">How to Choose</h2>
+            <p><strong>Pick Option 1</strong> if you want clear separation between current vs historical data</p>
+            <p><strong>Pick Option 2</strong> if you want to easily compare city vs county lobbying</p>
+            <p><strong>Pick Option 3</strong> if you like the current layout and just want better labeling</p>
+        </div>
+    </div>
+</body>
+</html>

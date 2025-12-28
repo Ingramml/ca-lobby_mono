@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option 1: Separate by Type (Count vs Spending)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page-title-section {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            padding: 48px 24px;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .page-title-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        .section-header {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #6366f1;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .section-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .year-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .historical-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-top: 4px solid;
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-icon {
+            font-size: 1.5rem;
+        }
+
+        .kpi-header h3 {
+            font-size: 1rem;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 16px 0;
+        }
+
+        .kpi-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .spending-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-title-section">
+            <h1>California Lobbying Dashboard</h1>
+            <p class="page-subtitle">Overview of California state lobbying activity and key metrics</p>
+        </div>
+
+        <!-- Option 1: Separate by Type -->
+        <h1 style="color: #1f2937; margin-bottom: 24px; font-size: 2rem;">Option 1: Separate by Type (Count vs Spending)</h1>
+
+        <!-- Row 1: Total Spending (2025) -->
+        <div class="section-header">
+            <h2>2025 Overview <span class="year-badge">2025 Data</span></h2>
+            <p class="section-subtitle">Current year snapshot of total lobbying expenditures</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card" style="border-top-color: #2563eb;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">💰</span>
+                    <h3>Total Lobbying Expenditures</h3>
+                </div>
+                <div class="kpi-value">$24,215.3M</div>
+                <p class="kpi-subtitle">Actual 2025 Spending</p>
+            </div>
+        </div>
+
+        <!-- Row 2: City/County Counts (2025) -->
+        <div class="section-header" style="margin-top: 32px;">
+            <h2>Active Government Entities <span class="year-badge">2025 Data</span></h2>
+            <p class="section-subtitle">Organizations and departments actively lobbying in 2025</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card" style="border-top-color: #10b981;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏛️</span>
+                    <h3>City Government Lobby Organizations/Departments</h3>
+                </div>
+                <div class="kpi-value">17</div>
+                <p class="kpi-subtitle">City Organizations & Departments (2025)</p>
+            </div>
+
+            <div class="dashboard-card" style="border-top-color: #8b5cf6;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏢</span>
+                    <h3>County Government Lobby Organizations/Departments</h3>
+                </div>
+                <div class="kpi-value">72</div>
+                <p class="kpi-subtitle">County Organizations & Departments (2025)</p>
+            </div>
+        </div>
+
+        <!-- Row 3: Spending Breakdown (All Years) -->
+        <div class="section-header" style="margin-top: 32px;">
+            <h2>Historical Spending Breakdown <span class="historical-badge">All Years</span></h2>
+            <p class="section-subtitle">Cumulative spending across all years in database</p>
+        </div>
+
+        <div class="dashboard-grid spending-grid">
+            <div class="dashboard-card" style="border-top-color: #06b6d4;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏛️</span>
+                    <h3>City Membership</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$104.05M</div>
+                <p class="kpi-subtitle">City Membership Dues (All Years)</p>
+            </div>
+
+            <div class="dashboard-card" style="border-top-color: #10b981;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">💼</span>
+                    <h3>City Other Lobbying</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$16,923.17M</div>
+                <p class="kpi-subtitle">City Other Lobbying (All Years)</p>
+            </div>
+
+            <div class="dashboard-card" style="border-top-color: #a855f7;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏢</span>
+                    <h3>County Membership</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$1,888.90M</div>
+                <p class="kpi-subtitle">County Membership Dues (All Years)</p>
+            </div>
+
+            <div class="dashboard-card" style="border-top-color: #8b5cf6;">
+                <div class="kpi-header">
+                    <span class="kpi-icon">📋</span>
+                    <h3>County Other Lobbying</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$17,808.07M</div>
+                <p class="kpi-subtitle">County Other Lobbying (All Years)</p>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 24px; border-radius: 8px; margin-top: 32px; border-left: 4px solid #3b82f6;">
+            <h3 style="color: #1f2937; margin-bottom: 12px;">Option 1 Benefits:</h3>
+            <ul style="color: #4b5563; line-height: 1.8; padding-left: 24px;">
+                <li>Clear separation between 2025 data and historical data</li>
+                <li>Section headers make it obvious which metrics are current vs cumulative</li>
+                <li>Color-coded badges (blue for 2025, yellow for all years) provide quick visual cues</li>
+                <li>Logical grouping: Overview → Active Entities → Historical Spending</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

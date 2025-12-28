@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option 3: Visual Year Badges (Current Layout Enhanced)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page-title-section {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            padding: 48px 24px;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .page-title-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .spending-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-top: 4px solid;
+            position: relative;
+        }
+
+        /* Different card styles based on time period */
+        .dashboard-card.current-year {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .dashboard-card.historical {
+            border-left: 3px solid #f59e0b;
+        }
+
+        .time-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .time-badge.current {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .time-badge.historical {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-right: 80px; /* Make room for badge */
+        }
+
+        .kpi-icon {
+            font-size: 1.5rem;
+        }
+
+        .kpi-header h3 {
+            font-size: 1rem;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 16px 0;
+        }
+
+        .kpi-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .legend {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .legend-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 3px solid;
+        }
+
+        .legend-box.current {
+            border-color: #3b82f6;
+        }
+
+        .legend-box.historical {
+            border-color: #f59e0b;
+        }
+
+        .legend-text {
+            font-size: 0.875rem;
+            color: #374151;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-title-section">
+            <h1>California Lobbying Dashboard</h1>
+            <p class="page-subtitle">Overview of California state lobbying activity and key metrics</p>
+        </div>
+
+        <!-- Option 3: Visual Year Badges -->
+        <h1 style="color: #1f2937; margin-bottom: 24px; font-size: 2rem;">Option 3: Visual Badges (Keep Current Layout)</h1>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box current"></div>
+                <span class="legend-text">2025 Current Year Data</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box historical"></div>
+                <span class="legend-text">Historical Total (All Years)</span>
+            </div>
+        </div>
+
+        <!-- Row 1: Mixed (Total + Counts) -->
+        <div class="dashboard-grid">
+            <div class="dashboard-card current-year" style="border-top-color: #2563eb;">
+                <span class="time-badge current">2025</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">💰</span>
+                    <h3>Total Lobbying Expenditures</h3>
+                </div>
+                <div class="kpi-value">$24,215.3M</div>
+                <p class="kpi-subtitle">Actual 2025 Spending</p>
+            </div>
+
+            <div class="dashboard-card current-year" style="border-top-color: #10b981;">
+                <span class="time-badge current">2025</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏛️</span>
+                    <h3>City Government Lobby Organizations/Departments</h3>
+                </div>
+                <div class="kpi-value">17</div>
+                <p class="kpi-subtitle">City Organizations & Departments</p>
+            </div>
+
+            <div class="dashboard-card current-year" style="border-top-color: #8b5cf6;">
+                <span class="time-badge current">2025</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏢</span>
+                    <h3>County Government Lobby Organizations/Departments</h3>
+                </div>
+                <div class="kpi-value">72</div>
+                <p class="kpi-subtitle">County Organizations & Departments</p>
+            </div>
+        </div>
+
+        <!-- Row 2: Spending Breakdown (All Years) -->
+        <div class="dashboard-grid spending-grid" style="margin-top: 24px;">
+            <div class="dashboard-card historical" style="border-top-color: #06b6d4;">
+                <span class="time-badge historical">ALL YEARS</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏛️</span>
+                    <h3>City Membership</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$104.05M</div>
+                <p class="kpi-subtitle">City Membership Dues (Historical)</p>
+            </div>
+
+            <div class="dashboard-card historical" style="border-top-color: #10b981;">
+                <span class="time-badge historical">ALL YEARS</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">💼</span>
+                    <h3>City Other Lobbying</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$16,923.17M</div>
+                <p class="kpi-subtitle">City Other Lobbying (Historical)</p>
+            </div>
+
+            <div class="dashboard-card historical" style="border-top-color: #a855f7;">
+                <span class="time-badge historical">ALL YEARS</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">🏢</span>
+                    <h3>County Membership</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$1,888.90M</div>
+                <p class="kpi-subtitle">County Membership Dues (Historical)</p>
+            </div>
+
+            <div class="dashboard-card historical" style="border-top-color: #8b5cf6;">
+                <span class="time-badge historical">ALL YEARS</span>
+                <div class="kpi-header">
+                    <span class="kpi-icon">📋</span>
+                    <h3>County Other Lobbying</h3>
+                </div>
+                <div class="kpi-value" style="font-size: 1.5rem;">$17,808.07M</div>
+                <p class="kpi-subtitle">County Other Lobbying (Historical)</p>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 24px; border-radius: 8px; margin-top: 32px; border-left: 4px solid #f59e0b;">
+            <h3 style="color: #1f2937; margin-bottom: 12px;">Option 3 Benefits:</h3>
+            <ul style="color: #4b5563; line-height: 1.8; padding-left: 24px;">
+                <li>Minimal layout changes - keeps current card arrangement</li>
+                <li>Visual badges (top-right corner) clearly show "2025" vs "ALL YEARS"</li>
+                <li>Color-coded left border: Blue for current year, Orange for historical</li>
+                <li>Legend at top provides quick reference for color meaning</li>
+                <li>Easy to scan - badges stand out visually on each card</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

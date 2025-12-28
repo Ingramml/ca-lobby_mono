@@ -52,6 +52,40 @@
   transform: translateY(0);
 }
 
+/* Page title section - appears below navigation */
+.page-title-section {
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+  padding: var(--space-xl) var(--space-md);
+  color: white;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-title-section h1 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: white;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+}
+
+@media (min-width: 768px) {
+  .page-title-section {
+    padding: var(--space-xxl) var(--space-lg);
+  }
+
+  .page-title-section h1 {
+    font-size: var(--text-4xl);
+  }
+}
+
 .App-main {
   padding: var(--space-xl) var(--space-md);
   max-width: var(--container-xl);
