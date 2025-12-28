@@ -283,9 +283,15 @@ class handler(BaseHTTPRequestHandler):
 
         FIXED: Now correctly uses EMPLR_NAML (who paid) instead of FIRM_NAME (lobbying firm)
         and filters to latest amendments only to avoid double-counting.
+        Uses JOIN instead of IN subquery for multi-column filtering.
         """
         query = """
-        WITH yearly_spending AS (
+        WITH latest_amendments AS (
+            SELECT FILING_ID, MAX(AMEND_ID) as max_amend_id
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
+            GROUP BY FILING_ID
+        ),
+        yearly_spending AS (
             SELECT
                 EXTRACT(YEAR FROM p.RPT_DATE_DATE) as year,
                 pay.EMPLR_ID as filer_id,
@@ -301,6 +307,9 @@ class handler(BaseHTTPRequestHandler):
                     ELSE 'other'
                 END as govt_type
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` p
+            INNER JOIN latest_amendments la
+                ON p.FILING_ID = la.FILING_ID
+                AND p.AMEND_ID = la.max_amend_id
             INNER JOIN `ca-lobby.ca_lobby.lpay_cd` pay
                 ON p.FILING_ID = pay.FILING_ID
                 AND p.AMEND_ID = pay.AMEND_ID
@@ -310,11 +319,6 @@ class handler(BaseHTTPRequestHandler):
               AND EXTRACT(YEAR FROM p.RPT_DATE_DATE) <= EXTRACT(YEAR FROM CURRENT_DATE())
               AND pay.PER_TOTAL IS NOT NULL
               AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
-              AND (p.FILING_ID, p.AMEND_ID) IN (
-                  SELECT FILING_ID, MAX(AMEND_ID)
-                  FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
-                  GROUP BY FILING_ID
-              )
         )
         SELECT
             year,
@@ -336,14 +340,23 @@ class handler(BaseHTTPRequestHandler):
 
         FIXED: Now correctly uses EMPLR_NAML (who paid) instead of FIRM_NAME (lobbying firm)
         and filters to latest amendments only to avoid double-counting.
+        Uses JOIN instead of IN subquery for multi-column filtering.
         """
         query = """
-        WITH spending_2025 AS (
+        WITH latest_amendments AS (
+            SELECT FILING_ID, MAX(AMEND_ID) as max_amend_id
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
+            GROUP BY FILING_ID
+        ),
+        spending_2025 AS (
             SELECT
                 pay.EMPLR_NAML as employer_name,
                 pay.EMPLR_ID as filer_id,
                 CAST(pay.PER_TOTAL AS FLOAT64) as amount
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` p
+            INNER JOIN latest_amendments la
+                ON p.FILING_ID = la.FILING_ID
+                AND p.AMEND_ID = la.max_amend_id
             INNER JOIN `ca-lobby.ca_lobby.lpay_cd` pay
                 ON p.FILING_ID = pay.FILING_ID
                 AND p.AMEND_ID = pay.AMEND_ID
@@ -351,11 +364,6 @@ class handler(BaseHTTPRequestHandler):
               AND EXTRACT(YEAR FROM p.RPT_DATE_DATE) = 2025
               AND pay.PER_TOTAL IS NOT NULL
               AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
-              AND (p.FILING_ID, p.AMEND_ID) IN (
-                  SELECT FILING_ID, MAX(AMEND_ID)
-                  FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
-                  GROUP BY FILING_ID
-              )
               AND (
                 UPPER(pay.EMPLR_NAML) LIKE '%CITY%'
                 OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
@@ -419,13 +427,19 @@ class handler(BaseHTTPRequestHandler):
 
         FIXED: Now correctly shows lobbying firms (PAYEE_NAML) and classifies by
         employer type (EMPLR_NAML). Filters to latest amendments only.
+        Uses JOIN instead of IN subquery for multi-column filtering.
 
         Returns lobbying firms that received payments from city or county entities,
         with separate amounts for city and county spending per firm.
         Used for stacked bar chart visualization.
         """
         query = """
-        WITH org_spending AS (
+        WITH latest_amendments AS (
+            SELECT FILING_ID, MAX(AMEND_ID) as max_amend_id
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
+            GROUP BY FILING_ID
+        ),
+        org_spending AS (
             SELECT
                 pay.PAYEE_NAML as organization_name,
                 CASE
@@ -440,6 +454,9 @@ class handler(BaseHTTPRequestHandler):
                 END as govt_type,
                 CAST(pay.PER_TOTAL AS FLOAT64) as amount
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` p
+            INNER JOIN latest_amendments la
+                ON p.FILING_ID = la.FILING_ID
+                AND p.AMEND_ID = la.max_amend_id
             INNER JOIN `ca-lobby.ca_lobby.lpay_cd` pay
                 ON p.FILING_ID = pay.FILING_ID
                 AND p.AMEND_ID = pay.AMEND_ID
@@ -447,11 +464,6 @@ class handler(BaseHTTPRequestHandler):
               AND EXTRACT(YEAR FROM p.RPT_DATE_DATE) = 2025
               AND pay.PER_TOTAL IS NOT NULL
               AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
-              AND (p.FILING_ID, p.AMEND_ID) IN (
-                  SELECT FILING_ID, MAX(AMEND_ID)
-                  FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
-                  GROUP BY FILING_ID
-              )
               AND (
                 UPPER(pay.EMPLR_NAML) LIKE '%CITY%'
                 OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
