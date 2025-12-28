@@ -294,13 +294,14 @@ class handler(BaseHTTPRequestHandler):
         yearly_spending AS (
             SELECT
                 EXTRACT(YEAR FROM p.RPT_DATE_DATE) as year,
-                pay.EMPLR_ID as filer_id,
+                pay.EMPLR_NAML as employer_name,
                 CAST(pay.PER_TOTAL AS FLOAT64) as amount,
                 CASE
                     WHEN UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
                     THEN 'city'
-                    WHEN UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
+                    WHEN UPPER(pay.EMPLR_NAML) LIKE '%COUNTY OF%'
+                         OR UPPER(pay.EMPLR_NAML) LIKE '% COUNTY'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
                     THEN 'county'
@@ -325,8 +326,8 @@ class handler(BaseHTTPRequestHandler):
             SUM(amount) as total_spending,
             SUM(CASE WHEN govt_type = 'city' THEN amount ELSE 0 END) as city_spending,
             SUM(CASE WHEN govt_type = 'county' THEN amount ELSE 0 END) as county_spending,
-            COUNT(DISTINCT CASE WHEN govt_type = 'city' THEN filer_id END) as city_count,
-            COUNT(DISTINCT CASE WHEN govt_type = 'county' THEN filer_id END) as county_count
+            COUNT(DISTINCT CASE WHEN govt_type = 'city' THEN employer_name END) as city_count,
+            COUNT(DISTINCT CASE WHEN govt_type = 'county' THEN employer_name END) as county_count
         FROM yearly_spending
         GROUP BY year
         ORDER BY year ASC
@@ -351,7 +352,6 @@ class handler(BaseHTTPRequestHandler):
         spending_2025 AS (
             SELECT
                 pay.EMPLR_NAML as employer_name,
-                pay.EMPLR_ID as filer_id,
                 CAST(pay.PER_TOTAL AS FLOAT64) as amount
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` p
             INNER JOIN latest_amendments la
@@ -365,11 +365,12 @@ class handler(BaseHTTPRequestHandler):
               AND pay.PER_TOTAL IS NOT NULL
               AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
               AND (
-                UPPER(pay.EMPLR_NAML) LIKE '%CITY%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION%'
+                UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY OF%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '% COUNTY'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
                 OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
               )
         )
         SELECT
@@ -377,7 +378,8 @@ class handler(BaseHTTPRequestHandler):
                 WHEN UPPER(employer_name) LIKE '%LEAGUE%CITIES%'
                      OR UPPER(employer_name) LIKE '%CITY OF%'
                 THEN 'city'
-                WHEN UPPER(employer_name) LIKE '%COUNTY%'
+                WHEN UPPER(employer_name) LIKE '%COUNTY OF%'
+                     OR UPPER(employer_name) LIKE '% COUNTY'
                      OR UPPER(employer_name) LIKE '%CSAC%'
                      OR UPPER(employer_name) LIKE '%ASSOCIATION OF COUNTIES%'
                 THEN 'county'
@@ -387,11 +389,12 @@ class handler(BaseHTTPRequestHandler):
                 WHEN UPPER(employer_name) LIKE '%LEAGUE%'
                      OR UPPER(employer_name) LIKE '%ASSOCIATION%'
                      OR UPPER(employer_name) LIKE '%COALITION%'
+                     OR UPPER(employer_name) LIKE '%CSAC%'
                 THEN 'membership'
                 ELSE 'other_lobbying'
             END as spending_category,
             SUM(amount) as total_amount,
-            COUNT(DISTINCT filer_id) as filer_count
+            COUNT(DISTINCT employer_name) as filer_count
         FROM spending_2025
         GROUP BY govt_type, spending_category
         HAVING total_amount > 0
@@ -446,7 +449,8 @@ class handler(BaseHTTPRequestHandler):
                     WHEN UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
                     THEN 'city'
-                    WHEN UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
+                    WHEN UPPER(pay.EMPLR_NAML) LIKE '%COUNTY OF%'
+                         OR UPPER(pay.EMPLR_NAML) LIKE '% COUNTY'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
                          OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
                     THEN 'county'
@@ -465,11 +469,12 @@ class handler(BaseHTTPRequestHandler):
               AND pay.PER_TOTAL IS NOT NULL
               AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
               AND (
-                UPPER(pay.EMPLR_NAML) LIKE '%CITY%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION%'
+                UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%COUNTY OF%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '% COUNTY'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
                 OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
+                OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
               )
         ),
         aggregated AS (
