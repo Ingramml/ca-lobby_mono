@@ -91,6 +91,46 @@ curl "https://ca-lobbymono.vercel.app/api/search?q=test"
 - Main branch: `master`
 - Push to master triggers Vercel auto-deploy (if connected)
 
+## SQL Query Standards
+
+**IMPORTANT**: All SQL queries written or modified must be validated against [QUERY_ANALYSIS_REPORT.md](QUERY_ANALYSIS_REPORT.md) before deployment.
+
+### Three Cardinal Rules (CAL-ACCESS Data)
+1. **Always filter to latest AMEND_ID** - Use JOIN with CTE, not IN subquery
+2. **Use EMPLR_NAML (who paid)** - Not FIRM_NAME (lobbying firm)
+3. **Aggregate on PER_TOTAL** - Not CUM_TOTAL
+
+### City/County Classification Pattern
+Use the broader patterns from Template 3 in the report:
+```sql
+CASE
+    WHEN UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
+         OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
+    THEN 'city'
+    WHEN UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
+         OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
+         OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
+    THEN 'county'
+    ELSE 'other'
+END as govt_type
+```
+
+### BigQuery-Specific Notes
+- Multi-column IN subqueries not supported - use JOIN with CTE instead
+- For amendment filtering:
+```sql
+WITH latest_amendments AS (
+    SELECT FILING_ID, MAX(AMEND_ID) as max_amend_id
+    FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
+    GROUP BY FILING_ID
+)
+SELECT ...
+INNER JOIN latest_amendments la
+    ON p.FILING_ID = la.FILING_ID
+    AND p.AMEND_ID = la.max_amend_id
+```
+
 ## Reference Documents
+- [QUERY_ANALYSIS_REPORT.md](QUERY_ANALYSIS_REPORT.md) - SQL query validation reference
 - [Session Archive: Production Deployment](Session_Archives/session_2025-10-31_production-deployment.md)
 - [Master Files Toolkit](~/.claude/master-files/)

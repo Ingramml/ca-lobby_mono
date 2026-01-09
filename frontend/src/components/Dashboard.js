@@ -32,6 +32,12 @@ function Dashboard() {
   const [spendingBreakdown, setSpendingBreakdown] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
 
+  // Year filter for KPIs - will be set dynamically based on available data
+  const currentYear = new Date().getFullYear();
+  const [availableYears, setAvailableYears] = useState([currentYear, currentYear - 1, currentYear - 2]);
+  const [selectedKPIYear, setSelectedKPIYear] = useState(currentYear);
+  const [maxDataYear, setMaxDataYear] = useState(currentYear);
+
   // Fetch analytics data from API
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -54,6 +60,16 @@ function Dashboard() {
 
         if (spendingResponse.success) {
           setSpendingData(spendingResponse.data);
+          // Set available years from data and default to most recent year
+          if (spendingResponse.data && spendingResponse.data.length > 0) {
+            const years = spendingResponse.data.map(d => d.year).sort((a, b) => b - a);
+            const mostRecentYear = years[0];
+            // Show last 3 years with data
+            const yearsToShow = years.slice(0, 3);
+            setAvailableYears(yearsToShow);
+            setMaxDataYear(mostRecentYear);
+            setSelectedKPIYear(mostRecentYear);
+          }
         }
 
         if (breakdownResponse.success) {
@@ -61,7 +77,8 @@ function Dashboard() {
         }
       } catch (error) {
         console.error('Analytics fetch error:', error);
-        setDashboardError(`Failed to load dashboard data: ${error.message}`);
+        // User-friendly error message
+        setDashboardError('Unable to load dashboard data. Please refresh the page.');
       } finally {
         setDashboardLoading(false);
       }
@@ -105,9 +122,7 @@ function Dashboard() {
     );
   }
 
-  const currentYear = new Date().getFullYear();
-
-  // Calculate KPI metrics from spending data
+  // Calculate KPI metrics from spending data based on selected year
   const calculateKPIs = () => {
     const baseKpis = {
       totalSpending: 0,
@@ -120,15 +135,23 @@ function Dashboard() {
     };
 
     if (spendingData && spendingData.length > 0) {
-      // Get latest year's data
-      const latestYear = spendingData[spendingData.length - 1];
-      baseKpis.totalSpending = latestYear?.total_spending || 0;
-      baseKpis.cityCount = latestYear?.city_count || 0;
-      baseKpis.countyCount = latestYear?.county_count || 0;
+      // Find data for selected year
+      const yearData = spendingData.find(d => d.year === selectedKPIYear);
+      if (yearData) {
+        baseKpis.totalSpending = yearData.total_spending || 0;
+        baseKpis.cityCount = yearData.city_count || 0;
+        baseKpis.countyCount = yearData.county_count || 0;
+        // For historical years, use the spending data totals (not broken down by membership)
+        baseKpis.cityOtherLobbying = yearData.city_spending || 0;
+        baseKpis.countyOtherLobbying = yearData.county_spending || 0;
+      }
     }
 
-    // Add breakdown data
-    if (spendingBreakdown && spendingBreakdown.length > 0) {
+    // Override with breakdown data for most recent year (includes membership breakdown)
+    if (spendingBreakdown && spendingBreakdown.length > 0 && selectedKPIYear === maxDataYear) {
+      // Reset the totals so we can add from breakdown
+      baseKpis.cityOtherLobbying = 0;
+      baseKpis.countyOtherLobbying = 0;
       spendingBreakdown.forEach(item => {
         if (item.govt_type === 'city' && item.spending_category === 'membership') {
           baseKpis.cityMembership = item.total_amount || 0;
@@ -150,6 +173,38 @@ function Dashboard() {
   return (
     <div className="page-container">
       <div className="page-content">
+        {/* Year Filter for KPIs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          marginBottom: '16px',
+          gap: '12px'
+        }}>
+          <label style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>
+            KPI Year:
+          </label>
+          <select
+            value={selectedKPIYear}
+            onChange={(e) => setSelectedKPIYear(Number(e.target.value))}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#374151',
+              background: 'white',
+              cursor: 'pointer',
+              minWidth: '100px'
+            }}
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Row 1: Total Spending + County Spending (Largest) */}
         <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
           {/* Total Lobbying Expenditures */}
@@ -169,7 +224,7 @@ function Dashboard() {
               fontWeight: '600',
               background: '#dbeafe',
               color: '#1e40af'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>💰</span>
               <h3 style={{ fontSize: '0.875rem' }}>Total Spending</h3>
@@ -177,7 +232,7 @@ function Dashboard() {
             <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '8px 0' }}>
               ${(kpis.totalSpending / 1000000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
             </div>
-            <p style={{ color: '#6b7280', fontSize: '0.75rem' }}>All Lobbying {currentYear}</p>
+            <p style={{ color: '#6b7280', fontSize: '0.75rem' }}>All Lobbying {selectedKPIYear}</p>
           </div>
 
           {/* County Other Lobbying Spending */}
@@ -198,18 +253,23 @@ function Dashboard() {
               fontWeight: '600',
               background: '#ede9fe',
               color: '#6b21a8'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🏢</span>
-              <h3 style={{ fontSize: '0.875rem' }}>County Other Lobbying</h3>
+              <h3 style={{ fontSize: '0.875rem' }}>
+                {selectedKPIYear === maxDataYear ? 'County Other Lobbying' : 'County Total Spending'}
+              </h3>
             </div>
             <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6b21a8', margin: '8px 0' }}>
               ${(kpis.countyOtherLobbying / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M
             </div>
-            <p style={{ color: '#7c3aed', fontSize: '0.75rem' }}>County Direct Lobbying</p>
+            <p style={{ color: '#7c3aed', fontSize: '0.75rem' }}>
+              {selectedKPIYear === maxDataYear ? 'County Direct Lobbying' : 'County Lobbying Total'}
+            </p>
           </div>
 
-          {/* County Membership Spending */}
+          {/* County Membership Spending - only show for most recent year */}
+          {selectedKPIYear === maxDataYear && (
           <div className="dashboard-card" style={{
             borderTop: '4px solid #a855f7',
             borderLeft: '3px solid #8b5cf6',
@@ -227,7 +287,7 @@ function Dashboard() {
               fontWeight: '600',
               background: '#ede9fe',
               color: '#6b21a8'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🎫</span>
               <h3 style={{ fontSize: '0.875rem' }}>County Membership</h3>
@@ -237,6 +297,7 @@ function Dashboard() {
             </div>
             <p style={{ color: '#7c3aed', fontSize: '0.75rem' }}>County Membership Dues</p>
           </div>
+          )}
 
           {/* County Count */}
           <div className="dashboard-card" style={{
@@ -256,7 +317,7 @@ function Dashboard() {
               fontWeight: '600',
               background: '#ede9fe',
               color: '#6b21a8'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🏢</span>
               <h3 style={{ fontSize: '0.875rem' }}>County Orgs/Depts</h3>
@@ -288,18 +349,23 @@ function Dashboard() {
               fontWeight: '600',
               background: '#d1fae5',
               color: '#065f46'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🏛️</span>
-              <h3 style={{ fontSize: '0.875rem' }}>City Other Lobbying</h3>
+              <h3 style={{ fontSize: '0.875rem' }}>
+                {selectedKPIYear === maxDataYear ? 'City Other Lobbying' : 'City Total Spending'}
+              </h3>
             </div>
             <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#065f46', margin: '8px 0' }}>
               ${(kpis.cityOtherLobbying / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M
             </div>
-            <p style={{ color: '#059669', fontSize: '0.75rem' }}>City Direct Lobbying</p>
+            <p style={{ color: '#059669', fontSize: '0.75rem' }}>
+              {selectedKPIYear === maxDataYear ? 'City Direct Lobbying' : 'City Lobbying Total'}
+            </p>
           </div>
 
-          {/* City Membership Spending */}
+          {/* City Membership Spending - only show for most recent year */}
+          {selectedKPIYear === maxDataYear && (
           <div className="dashboard-card" style={{
             borderTop: '4px solid #06b6d4',
             borderLeft: '3px solid #10b981',
@@ -317,7 +383,7 @@ function Dashboard() {
               fontWeight: '600',
               background: '#d1fae5',
               color: '#065f46'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🎫</span>
               <h3 style={{ fontSize: '0.875rem' }}>City Membership</h3>
@@ -327,6 +393,7 @@ function Dashboard() {
             </div>
             <p style={{ color: '#059669', fontSize: '0.75rem' }}>City Membership Dues</p>
           </div>
+          )}
 
           {/* City Count */}
           <div className="dashboard-card" style={{
@@ -346,7 +413,7 @@ function Dashboard() {
               fontWeight: '600',
               background: '#d1fae5',
               color: '#065f46'
-            }}>{currentYear}</span>
+            }}>{selectedKPIYear}</span>
             <div className="kpi-header" style={{ paddingRight: '60px', marginBottom: '8px' }}>
               <span className="kpi-icon" style={{ fontSize: '1.25rem' }}>🏛️</span>
               <h3 style={{ fontSize: '0.875rem' }}>City Orgs/Depts</h3>
@@ -356,12 +423,21 @@ function Dashboard() {
             </div>
             <p style={{ color: '#059669', fontSize: '0.75rem' }}>City Entities</p>
           </div>
-
-          {/* Spacer to maintain 4-column grid */}
-          <div style={{ visibility: 'hidden' }}></div>
         </div>
 
-        {/* KPI Explanation Table - Collapsible */}
+        {/* Charts Section - Live California Data */}
+        <div className="dashboard-grid" style={{ marginTop: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
+          <SpendingLineChart />
+          <TopOrganizationsChart />
+        </div>
+
+        {/* Government Money Recipients - City vs County */}
+        <div className="dashboard-grid" style={{ marginTop: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
+          <CityRecipientsChart />
+          <CountyRecipientsChart />
+        </div>
+
+        {/* KPI Explanation Table - Collapsible - Moved to bottom */}
         <div style={{
           background: 'white',
           borderRadius: '8px',
@@ -432,55 +508,43 @@ function Dashboard() {
                     <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                       <td style={{ padding: '12px', color: '#1f2937', fontWeight: '500' }}>Total Spending</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>The total amount spent on all lobbying activities across California</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#faf5ff' }}>
                       <td style={{ padding: '12px', color: '#6b21a8', fontWeight: '500' }}>County Other Lobbying</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Total spent by county governments on direct lobbying activities (not membership dues)</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#faf5ff' }}>
                       <td style={{ padding: '12px', color: '#6b21a8', fontWeight: '500' }}>County Membership</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Total spent by county governments on membership dues to lobbying organizations like CSAC</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#faf5ff' }}>
                       <td style={{ padding: '12px', color: '#6b21a8', fontWeight: '500' }}>County Organizations/Departments</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Number of county government organizations and departments that filed lobbying reports</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f0fdf4' }}>
                       <td style={{ padding: '12px', color: '#065f46', fontWeight: '500' }}>City Other Lobbying</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Total spent by city governments on direct lobbying activities (not membership dues)</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f0fdf4' }}>
                       <td style={{ padding: '12px', color: '#065f46', fontWeight: '500' }}>City Membership</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Total spent by city governments on membership dues to lobbying organizations like League of California Cities</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                     <tr style={{ background: '#f0fdf4' }}>
                       <td style={{ padding: '12px', color: '#065f46', fontWeight: '500' }}>City Organizations/Departments</td>
                       <td style={{ padding: '12px', color: '#4b5563' }}>Number of city government organizations and departments that filed lobbying reports</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{currentYear} only</td>
+                      <td style={{ padding: '12px', color: '#4b5563' }}>{selectedKPIYear} only</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Charts Section - Live California Data */}
-        <div className="dashboard-grid" style={{ marginTop: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
-          <SpendingLineChart />
-          <TopOrganizationsChart />
-        </div>
-
-        {/* Government Money Recipients - City vs County */}
-        <div className="dashboard-grid" style={{ marginTop: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
-          <CityRecipientsChart />
-          <CountyRecipientsChart />
         </div>
       </div>
     </div>

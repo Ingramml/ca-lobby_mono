@@ -24,23 +24,42 @@ export const API_ENDPOINTS = {
   databaseStats: `${API_BASE_URL}/api/database_stats`
 };
 
-// Helper function for making API calls with proper error handling
+// Helper function for making API calls with proper error handling and timeout
 export const apiCall = async (url, options = {}) => {
+  const timeout = options.timeout || 30000; // Default 30s timeout
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers
       },
+      signal: controller.signal,
       ...options
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait before making more requests.');
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     return await response.json();
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    // Handle timeout specifically
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+
     // Silently fail in production demo mode - don't clutter console
     // These errors are expected when backend is not available
     if (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_USE_BACKEND_API) {

@@ -21,7 +21,7 @@ function SpendingLineChart() {
         }
       } catch (err) {
         console.error('Spending fetch error:', err);
-        setError(err.message);
+        setError('Unable to load data. Please refresh.');
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ function SpendingLineChart() {
     return (
       <div className="chart-container">
         <h3>Lobbying Spending Trends (2015-Present)</h3>
-        <div className="chart-error">Error loading spending data: {error}</div>
+        <div className="chart-error">{error}</div>
       </div>
     );
   }

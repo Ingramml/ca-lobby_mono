@@ -1,43 +1,137 @@
+"""
+CAL-ACCESS Data Upload Pipeline
+
+Downloads CAL-ACCESS lobbying data files and uploads them to BigQuery.
+"""
+import os
+import logging
+from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 from upload import upload_to_bigquery
 from rowtypeforce import row_type_force
 from Bigquery_connection import bigquery_connect
-from load_dotenv import load_dotenv
-import os
-import pandas as pd
-from datetime import datetime
-import glob
-from Bignewdownload_2 import Bignewdoanload
+from Bignewdownload_2 import Bignewdownload
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
-today= datetime.today().strftime('%Y-%m-%d')
-download_dir = f"/Users/michaelingram/Documents/GitHub/CA_lobby/Downloaded_files/"
-downloaded_files = Bignewdoanload(download_dir)
-if downloaded_files:
-    all_files = downloaded_files
-else:
-    all_files = glob.glob(f"{download_dir}/{today}/*.csv")
-load_dotenv()
-#all_files=glob.glob('/Users/michaelingram/Documents/GitHub/CA_lobby/Downloaded_files/*/*.csv')
-files_to_process = [f for f in all_files  if not (os.path.basename(f).startswith("clean") or os.path.basename(f).startswith("project"))]
-print(files_to_process)
-client=bigquery_connect(os.getenv('CREDENTIALS_LOCATION'))
+def extract_table_name(filepath):
+    """
+    Extract BigQuery table name from filename.
 
-for filename in files_to_process:
-    print(filename)
-    
-    inputfile=filename
+    Example: '2025-01-01_cvr_lobby_disclosure_cd.csv' -> 'cvr_lobby_disclosure_cd'
+    """
+    stem = Path(filepath).stem
+    parts = stem.split("_", 1)
+    return parts[1] if len(parts) > 1 else stem
 
-    table_extract=os.path.basename(inputfile)
-    # Extract the table name from the file name
-    table_name1 = table_extract.split("_",1)[1][0:-4]
-    print(table_name1)
-    tablename = 'ca-lobby.ca_lobby.' + table_name1
-    print(tablename)
-    # Load environment variables from .env file
-    # Load the credentials from the .env file
 
-    cleanedframe=row_type_force(client, tablename, inputfile)
-    # Upload the DataFrame to BigQuery
-    project_id = "ca-lobby"  # Replace with your Google Cloud project ID
-    upload_to_bigquery(cleanedframe,tablename, os.getenv('CREDENTIALS_LOCATION'),project_id)
-client.close()
+def get_files_to_process(download_dir, today):
+    """
+    Get list of CSV files to process, excluding cleaned and project files.
+    """
+    import glob
+
+    # Try downloading new files first
+    downloaded_files = Bignewdownload(download_dir)
+
+    if downloaded_files:
+        all_files = downloaded_files
+    else:
+        all_files = glob.glob(f"{download_dir}/{today}/*.csv")
+
+    # Filter out cleaned and project files
+    files = [
+        f for f in all_files
+        if not (os.path.basename(f).startswith("clean") or
+                os.path.basename(f).startswith("project"))
+    ]
+
+    return files
+
+
+def main(dry_run=False):
+    """
+    Main pipeline execution.
+
+    Args:
+        dry_run: If True, skip actual uploads (for testing)
+    """
+    load_dotenv()
+
+    # Configuration from environment
+    download_dir = os.getenv('DOWNLOAD_DIR', './downloaded_files/')
+    credentials_path = os.getenv('CREDENTIALS_LOCATION')
+    project_id = os.getenv('BIGQUERY_PROJECT_ID', 'ca-lobby')
+
+    if not credentials_path:
+        logger.error("CREDENTIALS_LOCATION environment variable not set")
+        return
+
+    today = datetime.today().strftime('%Y-%m-%d')
+
+    # Get files to process
+    files_to_process = get_files_to_process(download_dir, today)
+
+    if not files_to_process:
+        logger.warning("No files to process")
+        return
+
+    logger.info(f"Found {len(files_to_process)} files to process")
+
+    client = None
+    try:
+        client = bigquery_connect(credentials_path)
+
+        if client is None:
+            logger.error("Failed to connect to BigQuery")
+            return
+
+        for filepath in files_to_process:
+            try:
+                logger.info(f"Processing: {filepath}")
+
+                # Extract table name from filename
+                table_name = extract_table_name(filepath)
+                full_table_id = f'ca-lobby.ca_lobby.{table_name}'
+
+                logger.info(f"Target table: {full_table_id}")
+
+                # Force row types to match BigQuery schema
+                cleaned_df = row_type_force(client, full_table_id, filepath)
+
+                if dry_run:
+                    logger.info(f"[DRY RUN] Would upload {len(cleaned_df)} rows to {full_table_id}")
+                else:
+                    # Upload to BigQuery
+                    upload_to_bigquery(cleaned_df, full_table_id, credentials_path, project_id)
+
+            except Exception as e:
+                logger.error(f"Failed to process {filepath}: {e}")
+                continue  # Continue with next file
+
+    except Exception as e:
+        logger.error(f"Pipeline failed: {e}")
+        raise
+    finally:
+        if client:
+            client.close()
+            logger.info("BigQuery client closed")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='CAL-ACCESS Data Upload Pipeline')
+    parser.add_argument('--dry-run', action='store_true', help='Skip actual uploads')
+    args = parser.parse_args()
+
+    main(dry_run=args.dry_run)

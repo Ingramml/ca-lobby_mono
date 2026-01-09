@@ -21,7 +21,7 @@ function CountyRecipientsChart() {
         }
       } catch (err) {
         console.error('County recipients fetch error:', err);
-        setError(err.message);
+        setError('Unable to load data. Please refresh.');
       } finally {
         setLoading(false);
       }
@@ -33,8 +33,8 @@ function CountyRecipientsChart() {
   if (loading) {
     return (
       <div className="chart-container">
-        <h3>Top 10 Recipients of County Lobbying Money</h3>
-        <div className="chart-loading">Loading recipient data...</div>
+        <h3>Top 10 Counties by Lobbying Spending</h3>
+        <div className="chart-loading">Loading county spending data...</div>
       </div>
     );
   }
@@ -42,8 +42,8 @@ function CountyRecipientsChart() {
   if (error) {
     return (
       <div className="chart-container">
-        <h3>Top 10 Recipients of County Lobbying Money</h3>
-        <div className="chart-error">Error loading recipient data: {error}</div>
+        <h3>Top 10 Counties by Lobbying Spending</h3>
+        <div className="chart-error">{error}</div>
       </div>
     );
   }
@@ -53,9 +53,9 @@ function CountyRecipientsChart() {
 
   return (
     <div className="chart-container">
-      <h3>Top 10 Recipients of County Lobbying Money</h3>
+      <h3>Top 10 Counties by Lobbying Spending</h3>
       <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '8px', marginBottom: '16px' }}>
-        Lobbying firms and consultants that received the most money from county governments (last 3 years)
+        County governments with the highest lobbying expenditures
       </p>
       <div className="chart-content" style={{ padding: '1rem' }}>
         {recipientsData.length === 0 ? (

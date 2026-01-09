@@ -10,6 +10,16 @@ function OrganizationProfile() {
   const [filings, setFilings] = useState([]);
   const [bills, setBills] = useState([]);
   const [spendingData, setSpendingData] = useState([]);
+  const [organizationSummary, setOrganizationSummary] = useState(null);
+  const [yearlySpending, setYearlySpending] = useState([]);
+
+  // Determine if organization is city or county related
+  const isCityOrg = organizationName?.toUpperCase().includes('CITY OF') ||
+                    organizationName?.toUpperCase().includes('LEAGUE') && organizationName?.toUpperCase().includes('CITIES');
+  const isCountyOrg = organizationName?.toUpperCase().includes('COUNTY') ||
+                      organizationName?.toUpperCase().includes('CSAC') ||
+                      organizationName?.toUpperCase().includes('ASSOCIATION OF COUNTIES');
+  const isGovtOrg = isCityOrg || isCountyOrg;
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
@@ -17,29 +27,71 @@ function OrganizationProfile() {
         setLoading(true);
         setError(null);
 
-        // Fetch all filings for this specific organization
-        const searchParams = new URLSearchParams({
+        // Fetch filings AND search data in parallel
+        const filingsParams = new URLSearchParams({
           organization: organizationName
         });
+        const searchParams = new URLSearchParams({
+          q: organizationName,
+          limit: 10
+        });
 
-        const url = `${API_ENDPOINTS.search}?${searchParams}`;
-        console.log('DEBUG: Fetching organization filings from URL:', url);
-        console.log('DEBUG: organizationName from URL param:', organizationName);
+        const filingsUrl = `${API_ENDPOINTS.search}?${filingsParams}`;
+        const searchUrl = `${API_ENDPOINTS.search}?${searchParams}`;
 
-        const data = await apiCall(url);
-        console.log('Organization profile filings response:', data);
+        console.log('DEBUG: Fetching organization filings from URL:', filingsUrl);
+        console.log('DEBUG: Fetching organization summary from URL:', searchUrl);
 
-        if (data.success) {
+        const [filingsData, searchData] = await Promise.all([
+          apiCall(filingsUrl),
+          apiCall(searchUrl)
+        ]);
+
+        console.log('Organization profile filings response:', filingsData);
+        console.log('Organization profile search response:', searchData);
+
+        if (filingsData.success) {
           // Use all results - API returns all filings for this organization
-          const allResults = data.data || [];
+          const allResults = filingsData.data || [];
           console.log('Total filings:', allResults.length);
           console.log('DEBUG: First filing:', allResults[0]);
           setFilings(allResults);
 
-          // TODO: Fetch real spending data from API when endpoint is available
-          // TODO: Fetch real bill tracking data from API when endpoint is available
+          // Get summary data from search results (has total_spending)
+          let summaryData = null;
+          if (searchData.success && searchData.data?.length > 0) {
+            // Find exact match for organization name
+            summaryData = searchData.data.find(
+              r => r.organization_name?.toUpperCase() === organizationName?.toUpperCase()
+            ) || searchData.data[0];
+            console.log('DEBUG: Found summary data:', summaryData);
+          }
+
+          // Calculate organization summary - prefer search data for spending
+          if (allResults.length > 0 || summaryData) {
+            const firstFiling = allResults[0] || {};
+            setOrganizationSummary({
+              total_spending: summaryData?.total_spending || 0,
+              filing_count: summaryData?.filing_count || allResults.length,
+              first_year: summaryData?.first_year || firstFiling.year,
+              latest_year: summaryData?.latest_year || firstFiling.year,
+              total_lobbying_firms: summaryData?.total_lobbying_firms || 0
+            });
+
+            // Calculate yearly spending from filings if available
+            const yearMap = {};
+            allResults.forEach(filing => {
+              if (filing.year && filing.amount) {
+                yearMap[filing.year] = (yearMap[filing.year] || 0) + filing.amount;
+              }
+            });
+            const yearlyData = Object.entries(yearMap)
+              .map(([year, amount]) => ({ year: parseInt(year), amount }))
+              .sort((a, b) => a.year - b.year);
+            setYearlySpending(yearlyData);
+          }
         } else {
-          throw new Error(data.error?.message || 'Failed to load organization data');
+          throw new Error(filingsData.error?.message || 'Failed to load organization data');
         }
       } catch (err) {
         console.error('Organization fetch error:', err);
@@ -162,30 +214,60 @@ function OrganizationProfile() {
       </div>
 
       <div className="page-content">
+        {/* Organization Type Badge */}
+        {isGovtOrg && (
+          <div style={{ marginBottom: '1rem' }}>
+            <span style={{
+              backgroundColor: isCityOrg ? '#d1fae5' : '#ede9fe',
+              color: isCityOrg ? '#065f46' : '#6b21a8',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '0.875rem',
+              fontWeight: '600'
+            }}>
+              {isCityOrg ? '🏛️ City Government' : '🏢 County Government'}
+            </span>
+          </div>
+        )}
+
         {/* Summary Cards */}
-        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+        <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          {/* Total Spent - Prominent KPI for all orgs */}
+          <div className="dashboard-card" style={{
+            borderTop: '4px solid #059669',
+            background: '#ecfdf5'
+          }}>
+            <h3 style={{ color: '#065f46' }}>💰 Total Spent</h3>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#059669' }}>
+              ${organizationSummary?.total_spending
+                ? (organizationSummary.total_spending / 1000000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M'
+                : '0'}
+            </div>
+            <p style={{ color: '#065f46', fontSize: '0.875rem' }}>Total lobbying expenditures</p>
+          </div>
+
           <div className="dashboard-card">
             <h3>Total Filings</h3>
             <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {filings.length}
+              {organizationSummary?.filing_count || filings.length}
             </div>
             <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Lobbying disclosure filings</p>
           </div>
 
           <div className="dashboard-card">
-            <h3>Filing Years</h3>
-            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {filings.length > 0 ? [...new Set(filings.map(f => f.year))].length : 0}
+            <h3>Active Period</h3>
+            <div className="kpi-value" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {organizationSummary?.first_year || 'N/A'} - {organizationSummary?.latest_year || 'N/A'}
             </div>
-            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Active filing years</p>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Years with filings</p>
           </div>
 
           <div className="dashboard-card">
-            <h3>Latest Filing</h3>
-            <div className="kpi-value" style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {filings.length > 0 ? filings[0].filing_date || 'N/A' : 'N/A'}
+            <h3>Lobbying Firms</h3>
+            <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {organizationSummary?.total_lobbying_firms || 0}
             </div>
-            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Most recent submission</p>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Firms hired for lobbying</p>
           </div>
         </div>
 
@@ -276,17 +358,36 @@ function OrganizationProfile() {
                           <strong>Date:</strong> {filing.filing_date}
                         </p>
                       )}
+                      {filing.amount && (
+                        <p style={{ margin: '0.25rem 0' }}>
+                          <strong>Amount:</strong> ${filing.amount.toLocaleString()}
+                        </p>
+                      )}
                     </div>
-                    <span style={{
-                      backgroundColor: '#e3f2fd',
-                      color: '#1565c0',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600'
-                    }}>
-                      {filing.year || 'N/A'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <span style={{
+                        backgroundColor: '#e3f2fd',
+                        color: '#1565c0',
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600'
+                      }}>
+                        {filing.year || 'N/A'}
+                      </span>
+                      {filing.amount && (
+                        <span style={{
+                          backgroundColor: '#ecfdf5',
+                          color: '#059669',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '0.875rem',
+                          fontWeight: '600'
+                        }}>
+                          ${(filing.amount / 1000).toFixed(1)}K
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))

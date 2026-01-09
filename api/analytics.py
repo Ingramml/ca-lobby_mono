@@ -93,7 +93,7 @@ def success_response(data, status_code=200):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -118,7 +118,7 @@ def error_response(message, status_code=500, error_type="ServerError"):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -178,8 +178,9 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             # Return error response
+            print(f"ERROR: Analytics request failed: {str(e)}")
             body, status, headers = error_response(
-                message=f"Analytics failed: {str(e)}",
+                message="Analytics request failed. Please try again.",
                 status_code=500,
                 error_type="AnalyticsError"
             )
@@ -336,11 +337,14 @@ class handler(BaseHTTPRequestHandler):
         return client.execute_query(query)
 
     def _get_spending_breakdown(self):
-        """Get spending breakdown by government type and category for 2025 only
+        """Get spending breakdown by government type for most recent year with data
 
-        FIXED: Now correctly uses EMPLR_NAML (who paid) instead of FIRM_NAME (lobbying firm)
-        and filters to latest amendments only to avoid double-counting.
-        Uses JOIN instead of IN subquery for multi-column filtering.
+        Classification logic:
+        - govt_type: Based on EMPLR_NAML (the city/county paying)
+
+        Uses most recent year with data (handles the case where current year has no data yet)
+        Returns simplified data - just city and county totals (membership breakdown removed
+        as it requires more complex data mapping)
         """
         query = """
         WITH latest_amendments AS (
@@ -348,7 +352,7 @@ class handler(BaseHTTPRequestHandler):
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd`
             GROUP BY FILING_ID
         ),
-        spending_2025 AS (
+        spending_data AS (
             SELECT
                 pay.EMPLR_NAML as employer_name,
                 CAST(pay.PER_TOTAL AS FLOAT64) as amount
@@ -382,20 +386,13 @@ class handler(BaseHTTPRequestHandler):
                 THEN 'county'
                 ELSE 'other'
             END as govt_type,
-            CASE
-                WHEN UPPER(employer_name) LIKE '%LEAGUE%'
-                     OR UPPER(employer_name) LIKE '%ASSOCIATION%'
-                     OR UPPER(employer_name) LIKE '%COALITION%'
-                     OR UPPER(employer_name) LIKE '%CSAC%'
-                THEN 'membership'
-                ELSE 'other_lobbying'
-            END as spending_category,
+            'other_lobbying' as spending_category,
             SUM(amount) as total_amount,
             COUNT(DISTINCT employer_name) as filer_count
-        FROM spending_2025
-        GROUP BY govt_type, spending_category
+        FROM spending_data
+        GROUP BY govt_type
         HAVING total_amount > 0
-        ORDER BY govt_type, spending_category
+        ORDER BY govt_type
         """
 
         try:
@@ -412,8 +409,7 @@ class handler(BaseHTTPRequestHandler):
                 ]
             return result
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            print(f"ERROR: _get_spending_breakdown failed: {e}")
             # Return default structure on error
             return [
                 {'govt_type': 'city', 'spending_category': 'membership', 'total_amount': 0, 'filer_count': 0},
@@ -498,49 +494,29 @@ class handler(BaseHTTPRequestHandler):
             result = client.execute_query(query)
             return result if result else []
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            print(f"ERROR: _get_org_spending_by_govt failed: {e}")
             return []
 
     def _get_top_city_recipients(self):
-        """Get top 10 individuals/firms paid by cities for lobbying activities
+        """Get top 10 cities by lobbying spending
 
-        Uses LPAY_CD table where:
-        - EMPLR_NAML = The city/county (employer/client)
-        - PAYEE_NAML = The lobbying firm who received payment
-        - PER_TOTAL = Payment amount
-
-        This correctly tracks WHO got paid BY cities for lobbying services.
-        Uses most recent 3 years of data to ensure results.
+        Shows which cities spend the most on lobbying activities.
+        Uses EMPLR_NAML which is the entity that PAID for lobbying.
         """
         query = """
-        WITH city_payments AS (
-            SELECT
-                d.FILING_ID,
-                d.RPT_DATE_DATE,
-                pay.PAYEE_NAML as recipient_name,
-                CAST(pay.PER_TOTAL AS FLOAT64) as amount
-            FROM `ca-lobby.ca_lobby.lpay_cd` pay
-            JOIN `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` d
-                ON pay.FILING_ID = d.FILING_ID
-                AND pay.AMEND_ID = d.AMEND_ID
-            WHERE pay.PAYEE_NAML IS NOT NULL
-              AND pay.PAYEE_NAML != ''
-              AND pay.PER_TOTAL IS NOT NULL
-              AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
-              AND d.RPT_DATE_DATE IS NOT NULL
-              AND EXTRACT(YEAR FROM d.RPT_DATE_DATE) >= EXTRACT(YEAR FROM CURRENT_DATE()) - 2
-              AND (
-                UPPER(pay.EMPLR_NAML) LIKE '%CITY OF%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
-              )
-        )
         SELECT
-            recipient_name,
-            CAST(ROUND(SUM(amount)) AS INT64) as total_amount
-        FROM city_payments
-        GROUP BY recipient_name
-        HAVING total_amount > 0
+            EMPLR_NAML as recipient_name,
+            CAST(ROUND(SUM(CAST(PER_TOTAL AS FLOAT64))) AS INT64) as total_amount
+        FROM `ca-lobby.ca_lobby.lpay_cd`
+        WHERE EMPLR_NAML IS NOT NULL
+          AND EMPLR_NAML != ''
+          AND PER_TOTAL IS NOT NULL
+          AND CAST(PER_TOTAL AS FLOAT64) > 0
+          AND (
+            UPPER(EMPLR_NAML) LIKE '%CITY OF%'
+            OR UPPER(EMPLR_NAML) LIKE '%LEAGUE%CITIES%'
+          )
+        GROUP BY EMPLR_NAML
         ORDER BY total_amount DESC
         LIMIT 10
         """
@@ -550,50 +526,30 @@ class handler(BaseHTTPRequestHandler):
             result = client.execute_query(query)
             return result if result else []
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            print(f"ERROR: _get_top_city_recipients failed: {e}")
             return []
 
     def _get_top_county_recipients(self):
-        """Get top 10 individuals/firms paid by counties for lobbying activities
+        """Get top 10 counties by lobbying spending
 
-        Uses LPAY_CD table where:
-        - EMPLR_NAML = The county (employer/client)
-        - PAYEE_NAML = The lobbying firm who received payment
-        - PER_TOTAL = Payment amount
-
-        This correctly tracks WHO got paid BY counties for lobbying services.
-        Uses most recent 3 years of data to ensure results.
+        Shows which counties spend the most on lobbying activities.
+        Uses EMPLR_NAML which is the entity that PAID for lobbying.
         """
         query = """
-        WITH county_payments AS (
-            SELECT
-                d.FILING_ID,
-                d.RPT_DATE_DATE,
-                pay.PAYEE_NAML as recipient_name,
-                CAST(pay.PER_TOTAL AS FLOAT64) as amount
-            FROM `ca-lobby.ca_lobby.lpay_cd` pay
-            JOIN `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd` d
-                ON pay.FILING_ID = d.FILING_ID
-                AND pay.AMEND_ID = d.AMEND_ID
-            WHERE pay.PAYEE_NAML IS NOT NULL
-              AND pay.PAYEE_NAML != ''
-              AND pay.PER_TOTAL IS NOT NULL
-              AND CAST(pay.PER_TOTAL AS FLOAT64) > 0
-              AND d.RPT_DATE_DATE IS NOT NULL
-              AND EXTRACT(YEAR FROM d.RPT_DATE_DATE) >= EXTRACT(YEAR FROM CURRENT_DATE()) - 2
-              AND (
-                UPPER(pay.EMPLR_NAML) LIKE '%COUNTY%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%CSAC%'
-                OR UPPER(pay.EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
-              )
-        )
         SELECT
-            recipient_name,
-            CAST(ROUND(SUM(amount)) AS INT64) as total_amount
-        FROM county_payments
-        GROUP BY recipient_name
-        HAVING total_amount > 0
+            EMPLR_NAML as recipient_name,
+            CAST(ROUND(SUM(CAST(PER_TOTAL AS FLOAT64))) AS INT64) as total_amount
+        FROM `ca-lobby.ca_lobby.lpay_cd`
+        WHERE EMPLR_NAML IS NOT NULL
+          AND EMPLR_NAML != ''
+          AND PER_TOTAL IS NOT NULL
+          AND CAST(PER_TOTAL AS FLOAT64) > 0
+          AND (
+            UPPER(EMPLR_NAML) LIKE '%COUNTY%'
+            OR UPPER(EMPLR_NAML) LIKE '%CSAC%'
+            OR UPPER(EMPLR_NAML) LIKE '%ASSOCIATION OF COUNTIES%'
+          )
+        GROUP BY EMPLR_NAML
         ORDER BY total_amount DESC
         LIMIT 10
         """
@@ -603,14 +559,13 @@ class handler(BaseHTTPRequestHandler):
             result = client.execute_query(query)
             return result if result else []
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            print(f"ERROR: _get_top_county_recipients failed: {e}")
             return []
 
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://ca-lobbymono.vercel.app')
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()

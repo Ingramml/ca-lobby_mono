@@ -1,71 +1,110 @@
+"""
+CAL-ACCESS Data Downloader
+
+Downloads lobbying data files from BLN (Balancing Act) API.
+"""
 import bln
 import ssl
-import certifi
 import datetime
-from bln import Client
-from dotenv import load_dotenv
+import logging
 import os
+
 import pandas as pd
 import urllib3
+from bln import Client
+from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Disable SSL warnings (only for development)
+# Note: SSL verification is disabled due to certificate issues with Python 3.13 and the BLN API
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def Bignewdoanload(output_dir):
+
+def Bignewdownload(output_dir):
+    """
+    Download CAL-ACCESS data files from BLN API.
+
+    Args:
+        output_dir: Directory to save downloaded files
+
+    Returns:
+        list: Paths of successfully downloaded files
+    """
     # Disable SSL certificate verification for this session
     # This is needed because some systems have certificate issues with Python 3.13
     ssl._create_default_https_context = ssl._create_unverified_context
 
     today = datetime.date.today()
     work_dir = os.path.join(output_dir, str(today))
+
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
+        logger.info(f"Created directory: {work_dir}")
 
-    # Load the .env file
+    # Load environment variables
     load_dotenv()
-    #TODO add the API key to the .env file
-    apiKey= os.getenv('BLN_API')
-    client = Client(apiKey) #loads the client with the API key
-    project_name='California campaign finance data'
-    project_id ='UHJvamVjdDo2MDVjNzdiYS0wODI4LTRlOTEtOGM3OC03ZjA4NGI2ZDEwZWE='
-    bln.pandas.register(pd) #registers the pandas extension
 
+    api_key = os.getenv('BLN_API')
+    if not api_key:
+        logger.error("BLN_API environment variable not set")
+        return []
 
+    # Get project ID from environment (with fallback for backwards compatibility)
+    project_id = os.getenv(
+        'BLN_PROJECT_ID',
+        'UHJvamVjdDo2MDVjNzdiYS0wODI4LTRlOTEtOGM3OC03ZjA4NGI2ZDEwZWE='
+    )
+
+    client = Client(api_key)
+    bln.pandas.register(pd)
+
+    # CAL-ACCESS lobbying data files
     file_names = [
-    "cvr_lobby_disclosure_cd.csv",
-    "cvr_registration_cd.csv",
-    "latt_cd.csv",
-    "latt_cd.csv",
-    "lccm_cd.csv",
-    "lemp_cd.csv",
-    "lexp_cd.csv",
-    "loth_cd.csv",
-    "lpay_cd.csv",
-    "filername_cd.csv"]
-    
-    fileList = []
+        "cvr_lobby_disclosure_cd.csv",
+        "cvr_registration_cd.csv",
+        "latt_cd.csv",
+        "lccm_cd.csv",
+        "lemp_cd.csv",
+        "lexp_cd.csv",
+        "loth_cd.csv",
+        "lpay_cd.csv",
+        "filername_cd.csv"
+    ]
 
-    for names in file_names:
-        downloaded_file = os.path.join(work_dir, f"{today}_{names}")
+    file_list = []
+
+    for filename in file_names:
+        downloaded_file = os.path.join(work_dir, f"{today}_{filename}")
+
         if os.path.exists(downloaded_file):
-            print(f"File {downloaded_file} already exists. Skipping download.")
+            logger.info(f"File already exists, skipping: {downloaded_file}")
             continue
-        print(f"Downloading {names} to {downloaded_file}")
-        df = pd.read_bln(project_id, names, apiKey, low_memory=False)
-        df.to_csv(downloaded_file, index=False)
-        fileList.append(downloaded_file)
 
-    return fileList
+        try:
+            logger.info(f"Downloading {filename}...")
+            df = pd.read_bln(project_id, filename, api_key, low_memory=False)
+            df.to_csv(downloaded_file, index=False)
+            file_list.append(downloaded_file)
+            logger.info(f"Downloaded {len(df)} rows to {downloaded_file}")
+        except Exception as e:
+            logger.error(f"Failed to download {filename}: {e}")
+            continue
 
+    logger.info(f"Downloaded {len(file_list)} files")
+    return file_list
+
+
+# Backwards compatibility alias
+Bignewdoanload = Bignewdownload
 
 
 if __name__ == "__main__":
-    output_dir = '/Users/michaelingram/Documents/GitHub/CA_lobby/Downloaded_files'
-    Bignewdoanload(output_dir)
-    #print(project_df)
-    #print(project_df['updated_at'])
-    #print(project_df['name'])
-    #print(project_df['id'])
-    #print(project_df['file_type'])
-    #print(project_df['size'])
-    #print(project_df['download_url'])
+    load_dotenv()
+    output_dir = os.getenv('DOWNLOAD_DIR', './downloaded_files/')
+    Bignewdownload(output_dir)

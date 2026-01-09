@@ -30,7 +30,7 @@ def success_response(data, status_code=200, metadata=None):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",  # CORS support
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -64,7 +64,7 @@ def error_response(message, status_code=500, error_type="ServerError"):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }

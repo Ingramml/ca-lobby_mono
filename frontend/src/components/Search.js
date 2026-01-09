@@ -24,14 +24,19 @@ function Search() {
 
   const navigate = useNavigate();
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const resultsPerPage = 10;
+
   // Memoized helper function to get organization activity count
   const getOrganizationActivityCount = React.useMemo(
     () => (orgName) => results.filter(r => r.organization_name === orgName).length,
     [results]
   );
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (e, page = 1) => {
+    if (e) e.preventDefault();
     console.log('Search button clicked - handleSearch triggered');
 
     // Allow search with just filters (no query required)
@@ -51,6 +56,13 @@ function Search() {
       return;
     }
 
+    // Validate query length
+    const sanitizedQuery = query.trim().slice(0, 500);
+    if (sanitizedQuery.length > 0 && sanitizedQuery.length < 2) {
+      setError('Search query must be at least 2 characters.');
+      return;
+    }
+
     // Use store methods properly
     setLoading(true);
     setError(null);
@@ -58,9 +70,9 @@ function Search() {
     try {
       // ALWAYS use backend API - no sample data fallback
       const searchParams = new URLSearchParams({
-        q: query.trim(),
-        page: 1,
-        limit: 50
+        q: sanitizedQuery,
+        page: page,
+        limit: resultsPerPage
       });
 
       console.log('Calling API:', `${API_ENDPOINTS.search}?${searchParams}`);
@@ -69,10 +81,12 @@ function Search() {
       if (data.success) {
         console.log('API response:', data);
         setResults(data.data || []);
+        setCurrentPage(page);
+        setTotalCount(data.pagination?.total_count || data.data?.length || 0);
         addToHistory({
           query,
           filters,
-          resultCount: data.data?.length || 0,
+          resultCount: data.pagination?.total_count || data.data?.length || 0,
           timestamp: new Date().toISOString()
         });
         console.log('Backend search completed:', data.data?.length, 'results');
@@ -81,12 +95,22 @@ function Search() {
       }
     } catch (error) {
       console.error('Search error:', error);
-      setError(`Search failed: ${error.message}`);
+      // User-friendly error message (don't expose internal details)
+      if (error.message?.includes('Rate limit')) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setError('Search failed. Please try again.');
+      }
       setResults([]);
     } finally {
       // Always stop loading regardless of success or error
       setLoading(false);
     }
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    handleSearch(null, newPage);
   };
 
   return (
@@ -212,9 +236,9 @@ function Search() {
 
           {results && results.length > 0 && (
             <div className="search-results">
-              <h3>Search Results ({results.length} found)</h3>
+              <h3>Search Results ({totalCount > 0 ? totalCount : results.length} found)</h3>
               <div className="results-list">
-                {results.slice(0, 20).map((result, index) => (
+                {results.map((result, index) => (
                   <div
                     key={result.filer_id || index}
                     className="result-item"
@@ -233,14 +257,23 @@ function Search() {
                           {result.organization_name || 'Unknown Organization'}
                         </h4>
                         <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
-                          <strong>Filer ID:</strong> {result.filer_id}
+                          <strong>Filer ID:</strong> {result.filer_id || 'N/A'}
                         </p>
                         <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
                           <strong>Active Period:</strong> {result.first_year} - {result.latest_year}
                         </p>
                         {result.total_spending > 0 && (
-                          <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
-                            <strong>Total Spending:</strong> ${(result.total_spending / 1000000).toFixed(2)}M
+                          <p style={{
+                            margin: '0.5rem 0',
+                            fontSize: '1rem',
+                            fontWeight: '700',
+                            color: '#059669',
+                            background: '#ecfdf5',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            display: 'inline-block'
+                          }}>
+                            Total Spent: ${(result.total_spending / 1000000).toFixed(2)}M
                           </p>
                         )}
                         {result.total_lobbying_firms > 0 && (
@@ -274,10 +307,51 @@ function Search() {
                     </div>
                   </div>
                 ))}
-                {results.length > 20 && (
-                  <p className="results-more">Showing first 20 of {results.length} results</p>
-                )}
               </div>
+              {/* Pagination Controls */}
+              {totalCount > resultsPerPage && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  borderTop: '1px solid #e5e7eb'
+                }}>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1 || loading}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: '1px solid #d1d5db',
+                      background: currentPage <= 1 ? '#f3f4f6' : '#fff',
+                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                      color: currentPage <= 1 ? '#9ca3af' : '#374151'
+                    }}
+                  >
+                    ← Previous
+                  </button>
+                  <span style={{ color: '#6b7280' }}>
+                    Page {currentPage} of {Math.ceil(totalCount / resultsPerPage)}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= Math.ceil(totalCount / resultsPerPage) || loading}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: '1px solid #d1d5db',
+                      background: currentPage >= Math.ceil(totalCount / resultsPerPage) ? '#f3f4f6' : '#fff',
+                      cursor: currentPage >= Math.ceil(totalCount / resultsPerPage) ? 'not-allowed' : 'pointer',
+                      color: currentPage >= Math.ceil(totalCount / resultsPerPage) ? '#9ca3af' : '#374151'
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

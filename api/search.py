@@ -93,7 +93,7 @@ def success_response(data, status_code=200):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -118,7 +118,7 @@ def error_response(message, status_code=500, error_type="ServerError"):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -150,7 +150,7 @@ def paginated_response(data, page, limit, total_count):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -183,10 +183,20 @@ class handler(BaseHTTPRequestHandler):
                 self._handle_organization_filings(org_name)
                 return
 
-            # Extract search parameters
-            query_text = params.get('q', [''])[0]
-            page = int(params.get('page', ['1'])[0])
-            limit = min(int(params.get('limit', ['25'])[0]), 100)  # Max 100
+            # Extract and validate search parameters
+            query_text = params.get('q', [''])[0].strip()[:500]  # Max 500 chars
+
+            # Validate page parameter
+            try:
+                page = max(1, int(params.get('page', ['1'])[0]))
+            except (ValueError, TypeError):
+                page = 1
+
+            # Validate limit parameter
+            try:
+                limit = min(max(1, int(params.get('limit', ['25'])[0])), 100)  # Max 100
+            except (ValueError, TypeError):
+                limit = 25
 
             # Build SQL query
             sql_query = self._build_search_query()
@@ -230,8 +240,9 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             # Return error response
+            print(f"ERROR: Search request failed: {str(e)}")
             body, status, headers = error_response(
-                message=f"Search failed: {str(e)}",
+                message="Search request failed. Please try again.",
                 status_code=500,
                 error_type="SearchError"
             )
@@ -251,8 +262,6 @@ class handler(BaseHTTPRequestHandler):
         Uses case-insensitive LIKE matching to handle variations in organization names.
         """
         try:
-            # Debug logging
-            print(f"DEBUG: _handle_organization_filings called with org_name='{org_name}'")
 
             query = """
             WITH latest_filings AS (
@@ -288,12 +297,10 @@ class handler(BaseHTTPRequestHandler):
             client = BigQueryClient()
             # Add wildcards for LIKE matching to handle exact and partial matches
             search_pattern = f"%{org_name}%"
-            print(f"DEBUG: search_pattern='{search_pattern}'")
             query_params = [
                 bigquery.ScalarQueryParameter('org_name', 'STRING', search_pattern)
             ]
             results = client.execute_query(query, query_params)
-            print(f"DEBUG: Query returned {len(results)} results")
 
             # Return success response
             body, status, headers = success_response(results)
@@ -306,8 +313,9 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             # Return error response
+            print(f"ERROR: Organization filings request failed: {str(e)}")
             body, status, headers = error_response(
-                message=f"Failed to fetch organization filings: {str(e)}",
+                message="Failed to fetch organization filings. Please try again.",
                 status_code=500,
                 error_type="OrganizationFilingsError"
             )
@@ -325,25 +333,77 @@ class handler(BaseHTTPRequestHandler):
         Fallback: cvr_lobby_disclosure_cd (orgs with filings but no payments)
 
         This ensures ALL registered organizations are searchable, not just those with payments.
+
+        FIXED: organization_filer_id from view was NULL, now we JOIN with raw table to get actual FILER_ID
+        FIXED: Added multiple join conditions to handle name variations:
+               - "SANTA MONICA, CITY OF" vs "CITY OF SANTA MONICA"
+               - Case differences (mixed case vs uppercase)
         """
         return """
         WITH view_results AS (
             SELECT
-                organization_filer_id as filer_id,
-                organization_name,
-                total_filings as filing_count,
-                FORMAT_DATE('%Y-%m-%d', first_activity_date) as first_filing_date,
-                FORMAT_DATE('%Y-%m-%d', last_activity_date) as latest_filing_date,
-                EXTRACT(YEAR FROM first_activity_date) as first_year,
-                EXTRACT(YEAR FROM last_activity_date) as latest_year,
-                total_spending,
-                total_lobbying_firms
-            FROM `ca-lobby.ca_lobby.v_organization_summary`
-            WHERE (@search_term IS NULL OR UPPER(organization_name) LIKE UPPER(@search_term))
+                v.organization_name,
+                v.total_filings as filing_count,
+                FORMAT_DATE('%Y-%m-%d', v.first_activity_date) as first_filing_date,
+                FORMAT_DATE('%Y-%m-%d', v.last_activity_date) as latest_filing_date,
+                EXTRACT(YEAR FROM v.first_activity_date) as first_year,
+                EXTRACT(YEAR FROM v.last_activity_date) as latest_year,
+                v.total_spending,
+                v.total_lobbying_firms
+            FROM `ca-lobby.ca_lobby.v_organization_summary` v
+            WHERE (@search_term IS NULL OR UPPER(v.organization_name) LIKE UPPER(@search_term))
+        ),
+        filer_ids AS (
+            SELECT
+                FILER_NAML as organization_name,
+                -- Normalize: "CITY OF X" -> "X" for matching
+                REGEXP_REPLACE(UPPER(FILER_NAML), r'^CITY OF\s+', '') as normalized_name,
+                -- Keep as STRING since many FILER_IDs are alphanumeric (e.g., "C00417")
+                MAX(FILER_ID) as filer_id
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
+            WHERE FROM_DATE_DATE >= '2020-01-01'
+              AND FILER_ID IS NOT NULL
+              AND TRIM(FILER_ID) != ''
+            GROUP BY FILER_NAML
+        ),
+        view_with_filer_id_all AS (
+            SELECT
+                COALESCE(f.filer_id, '') as filer_id,
+                vr.organization_name,
+                vr.filing_count,
+                vr.first_filing_date,
+                vr.latest_filing_date,
+                vr.first_year,
+                vr.latest_year,
+                vr.total_spending,
+                vr.total_lobbying_firms,
+                -- Rank by spending to keep best record per filer_id
+                ROW_NUMBER() OVER (
+                    PARTITION BY COALESCE(f.filer_id, vr.organization_name)
+                    ORDER BY vr.total_spending DESC NULLS LAST
+                ) as rn
+            FROM view_results vr
+            LEFT JOIN filer_ids f ON
+                -- Exact match (case-insensitive)
+                UPPER(vr.organization_name) = UPPER(f.organization_name)
+                -- Handle "X, CITY OF" (view) vs "CITY OF X" (raw)
+                OR REGEXP_REPLACE(UPPER(vr.organization_name), r'[,;]?\s*CITY OF\s*$', '') = f.normalized_name
+                -- Handle "COUNTY OF X" (view) vs "X; COUNTY OF" or "X, COUNTY OF" (raw)
+                OR REGEXP_REPLACE(UPPER(vr.organization_name), r'^COUNTY OF\s+', '') =
+                   REGEXP_REPLACE(UPPER(f.organization_name), r'[,;]?\s*COUNTY OF\s*$', '')
+                -- Handle CHARTER vs CHAPTER typo in source data (Santa Ana)
+                OR REPLACE(UPPER(vr.organization_name), 'CHARTER', 'CHAPTER') = UPPER(f.organization_name)
+        ),
+        view_with_filer_id AS (
+            -- Deduplicate: keep only highest-spending record per filer_id
+            SELECT filer_id, organization_name, filing_count, first_filing_date,
+                   latest_filing_date, first_year, latest_year, total_spending, total_lobbying_firms
+            FROM view_with_filer_id_all
+            WHERE rn = 1
         ),
         raw_results AS (
             SELECT
-                SAFE_CAST(FILER_ID AS INT64) as filer_id,
+                FILER_ID as filer_id,
                 FILER_NAML as organization_name,
                 COUNT(DISTINCT FILING_ID) as filing_count,
                 FORMAT_DATE('%Y-%m-%d', MIN(RPT_DATE_DATE)) as first_filing_date,
@@ -355,13 +415,15 @@ class handler(BaseHTTPRequestHandler):
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
             WHERE (@search_term IS NULL OR UPPER(FILER_NAML) LIKE UPPER(@search_term))
               AND FROM_DATE_DATE >= '2020-01-01'
-              AND SAFE_CAST(FILER_ID AS INT64) IS NOT NULL
-              AND FILER_NAML NOT IN (
-                SELECT organization_name FROM view_results
+              AND FILER_ID IS NOT NULL
+              AND TRIM(FILER_ID) != ''
+              -- Exclude orgs that already have spending data in view_with_filer_id (by filer_id)
+              AND FILER_ID NOT IN (
+                SELECT filer_id FROM view_with_filer_id WHERE filer_id != ''
               )
             GROUP BY FILER_ID, FILER_NAML
         )
-        SELECT * FROM view_results
+        SELECT * FROM view_with_filer_id
         UNION ALL
         SELECT * FROM raw_results
         ORDER BY latest_filing_date DESC
@@ -373,6 +435,7 @@ class handler(BaseHTTPRequestHandler):
         """Build count query for pagination - counts from both view and raw table
 
         Includes ALL organizations (with payments + without payments)
+        Deduplicates by filer_id to avoid counting same org multiple times
         """
         return """
         WITH view_results AS (
@@ -380,26 +443,48 @@ class handler(BaseHTTPRequestHandler):
             FROM `ca-lobby.ca_lobby.v_organization_summary`
             WHERE (@search_term IS NULL OR UPPER(organization_name) LIKE UPPER(@search_term))
         ),
+        filer_ids AS (
+            SELECT
+                FILER_NAML as organization_name,
+                REGEXP_REPLACE(UPPER(FILER_NAML), r'^CITY OF\s+', '') as normalized_name,
+                MAX(FILER_ID) as filer_id
+            FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
+            WHERE FROM_DATE_DATE >= '2020-01-01'
+              AND FILER_ID IS NOT NULL
+              AND TRIM(FILER_ID) != ''
+            GROUP BY FILER_NAML
+        ),
+        view_filer_ids AS (
+            SELECT DISTINCT COALESCE(f.filer_id, '') as filer_id
+            FROM view_results vr
+            LEFT JOIN filer_ids f ON
+                UPPER(vr.organization_name) = UPPER(f.organization_name)
+                OR REGEXP_REPLACE(UPPER(vr.organization_name), r'[,;]?\s*CITY OF\s*$', '') = f.normalized_name
+                OR REGEXP_REPLACE(UPPER(vr.organization_name), r'^COUNTY OF\s+', '') =
+                   REGEXP_REPLACE(UPPER(f.organization_name), r'[,;]?\s*COUNTY OF\s*$', '')
+                OR REPLACE(UPPER(vr.organization_name), 'CHARTER', 'CHAPTER') = UPPER(f.organization_name)
+            WHERE f.filer_id IS NOT NULL AND f.filer_id != ''
+        ),
         raw_results AS (
-            SELECT DISTINCT FILER_NAML as organization_name
+            SELECT DISTINCT FILER_ID as filer_id
             FROM `ca-lobby.ca_lobby.cvr_lobby_disclosure_cd_partitioned`
             WHERE (@search_term IS NULL OR UPPER(FILER_NAML) LIKE UPPER(@search_term))
               AND FROM_DATE_DATE >= '2020-01-01'
-              AND FILER_NAML NOT IN (
-                SELECT organization_name FROM view_results
-              )
+              AND FILER_ID IS NOT NULL
+              AND TRIM(FILER_ID) != ''
+              AND FILER_ID NOT IN (SELECT filer_id FROM view_filer_ids)
         )
         SELECT COUNT(*) as total FROM (
             SELECT organization_name FROM view_results
             UNION ALL
-            SELECT organization_name FROM raw_results
+            SELECT filer_id as organization_name FROM raw_results
         )
         """
 
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://ca-lobbymono.vercel.app')
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()

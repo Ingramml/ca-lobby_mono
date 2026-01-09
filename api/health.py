@@ -88,7 +88,7 @@ def success_response(data, status_code=200):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -113,7 +113,7 @@ def error_response(message, status_code=500):
 
     headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://ca-lobbymono.vercel.app",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
     }
@@ -159,8 +159,9 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as e:
             # Return error response
+            print(f"ERROR: Health check failed: {str(e)}")
             body, status, headers = error_response(
-                message=f"Health check failed: {str(e)}",
+                message="Health check failed. Please try again.",
                 status_code=500
             )
 
@@ -173,7 +174,7 @@ class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         """Handle CORS preflight requests"""
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://ca-lobbymono.vercel.app')
         self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()

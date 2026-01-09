@@ -1,28 +1,75 @@
+"""
+BigQuery Upload Module
+
+Uploads DataFrames to BigQuery tables with schema validation.
+"""
+import logging
+
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from google.api_core.exceptions import GoogleAPICallError, NotFound
 from dotenv import load_dotenv
-import os
-import pandas as pd
-import datetime
+
 from determine_df import ensure_dataframe
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
 
+def validate_schema(df, client, table_id):
+    """
+    Verify DataFrame columns match BigQuery table schema.
+
+    Args:
+        df: pandas DataFrame to validate
+        client: BigQuery client
+        table_id: Full table ID (project.dataset.table)
+
+    Returns:
+        bool: True if validation passes, False otherwise
+    """
+    try:
+        table = client.get_table(table_id)
+        expected_cols = {field.name for field in table.schema}
+        actual_cols = set(df.columns)
+
+        missing = expected_cols - actual_cols
+        extra = actual_cols - expected_cols
+
+        if missing:
+            logger.warning(f"Missing columns in DataFrame: {missing}")
+        if extra:
+            logger.info(f"Extra columns (will be ignored by BigQuery): {extra}")
+
+        # Return True if no critical missing columns
+        return len(missing) == 0
+
+    except NotFound:
+        logger.error(f"Table not found: {table_id}")
+        return False
+    except Exception as e:
+        logger.error(f"Schema validation error: {e}")
+        return False
+
 
 def upload_to_bigquery(inputfile, table_id, credentials_path, project_id):
     """
-    Uploads a CSV file to a BigQuery table.
+    Uploads a CSV file or DataFrame to a BigQuery table.
 
     Args:
-        csv_file_path (str): Path to the CSV file to upload.
-        table_id (str): The BigQuery table ID (e.g., "dataset.table_name").
-        project_id (str): The Google Cloud project ID.
-        credentials_path (str): Path to the service account JSON key file.
+        inputfile: Path to CSV file or pandas DataFrame
+        table_id: The BigQuery table ID (e.g., "project.dataset.table_name")
+        credentials_path: Path to the service account JSON key file
+        project_id: The Google Cloud project ID
 
     Returns:
-        None
+        bool: True if upload succeeded, False otherwise
     """
     try:
         # Load credentials
@@ -31,23 +78,38 @@ def upload_to_bigquery(inputfile, table_id, credentials_path, project_id):
         # Initialize BigQuery client
         client = bigquery.Client(credentials=credentials, project=project_id)
 
-        # Read the CSV file into a Pandas DataFrame
+        # Ensure we have a DataFrame
         df = ensure_dataframe(inputfile)
+
+        # Validate schema before upload
+        if not validate_schema(df, client, table_id):
+            logger.error(f"Schema validation failed for {table_id}")
+            return False
+
+        # Configure the load job
+        job_config = bigquery.LoadJobConfig(
+            write_disposition=bigquery.WriteDisposition.WRITE_APPEND
+        )
+
         # Upload the DataFrame to BigQuery
-        job = client.load_table_from_dataframe(df, table_id)
+        logger.info(f"Uploading {len(df)} rows to {table_id}...")
+        job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
 
         # Wait for the job to complete
         job.result()
 
-        print(f"✅ Successfully uploaded {inputfile} to {table_id}")
+        logger.info(f"Successfully uploaded {len(df)} rows to {table_id}")
+        return True
 
     except FileNotFoundError:
-        print(f"❌ File not found: {inputfile}")
+        logger.error(f"File not found: {inputfile}")
+        return False
     except GoogleAPICallError as e:
-        print(f"❌ Google API error: {e}")
+        logger.error(f"Google API error: {e}")
+        return False
     except Exception as e:
-        print(f"❌ An error occurred: {e}")
-    return
+        logger.error(f"Upload failed: {e}")
+        return False
 
 
 

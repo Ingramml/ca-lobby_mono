@@ -21,7 +21,7 @@ function TopOrganizationsChart() {
         }
       } catch (err) {
         console.error('Top organizations fetch error:', err);
-        setError(err.message);
+        setError('Unable to load data. Please refresh.');
       } finally {
         setLoading(false);
       }
@@ -43,17 +43,20 @@ function TopOrganizationsChart() {
     return (
       <div className="chart-container">
         <h3>Top 10 Organizations by Filings</h3>
-        <div className="chart-error">Error loading organizations: {error}</div>
+        <div className="chart-error">{error}</div>
       </div>
     );
   }
 
-  // Find max value for scaling bars
-  const maxCount = Math.max(...orgsData.map(d => d.filing_count || 0));
+  // Find max value for scaling bars (API returns total_spending, not filing_count)
+  const maxSpending = Math.max(...orgsData.map(d => d.total_spending || 0));
 
   return (
     <div className="chart-container">
-      <h3>Top 10 Organizations by Filings</h3>
+      <h3>Top 10 Organizations by Spending</h3>
+      <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '8px', marginBottom: '16px' }}>
+        Organizations with the highest total lobbying expenditures
+      </p>
       <div className="chart-content" style={{ padding: '1rem' }}>
         {orgsData.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#666' }}>No organization data available</p>
@@ -64,29 +67,31 @@ function TopOrganizationsChart() {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   marginBottom: '4px',
                   gap: '8px'
                 }}>
                   <div style={{
                     fontSize: '0.875rem',
                     color: '#374151',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    flex: 1
                   }}>
                     {index + 1}. {org.organization_name || 'Unknown'}
                   </div>
                   <div style={{
                     fontSize: '0.875rem',
-                    color: '#6b7280',
+                    color: '#2563eb',
                     fontWeight: '600'
                   }}>
-                    ({org.filing_count?.toLocaleString() || 0})
+                    ${(org.total_spending / 1000000).toFixed(2)}M
                   </div>
                 </div>
                 <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{
-                    width: `${(org.filing_count / maxCount) * 100}%`,
+                    width: `${(org.total_spending / maxSpending) * 100}%`,
                     height: '100%',
-                    backgroundColor: '#10b981',
+                    backgroundColor: '#3b82f6',
                     transition: 'width 0.3s ease'
                   }} />
                 </div>
